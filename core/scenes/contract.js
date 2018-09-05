@@ -28,7 +28,7 @@ export function getTokenContractMeta(contractName = CONTRACT_NAMES.cre) {
       owner,
       abis: JSON.parse(abis),
       address,
-      args: JSON.parse(args),
+      args: args ? JSON.parse(args) : args,
     }))
     .catch((ex) => {
       console.error(ex)
@@ -44,10 +44,10 @@ export function getTokenContractMeta(contractName = CONTRACT_NAMES.cre) {
  */
 export async function getContractInstance(contractName, connection) {
   if (contractName) {
-      let conn = connection || getConnection()
-      const { abis, address, decimal } = await getTokenContractMeta(contractName)
-      let contract = new conn.eth.Contract(abis, address)
-      contract.decimal = decimal
+    let conn = connection || getConnection()
+    const { abis, address, decimal } = await getTokenContractMeta(contractName)
+    let contract = new conn.eth.Contract(abis, address)
+    contract.decimal = decimal
     return contract
   } else {
     throw new TypeError('合约名称不能为空')

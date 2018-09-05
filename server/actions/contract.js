@@ -138,10 +138,10 @@ export const deployCREContract = {
     } = contractArgs
 
     let compiledContractSource = compileContract({
-      './SafeMath.sol': readSoliditySource(CONTRACT_NAMES.math),
-      './Ownable.sol': readSoliditySource(CONTRACT_NAMES.ownable),
-      './ERC20.sol': readSoliditySource(CONTRACT_NAMES.erc20),
-      './Token.sol': readSoliditySource(CONTRACT_NAMES.token),
+      'SafeMath.sol': readSoliditySource(CONTRACT_NAMES.math),
+      'Ownable.sol': readSoliditySource(CONTRACT_NAMES.ownable),
+      'ERC20.sol': readSoliditySource(CONTRACT_NAMES.erc20),
+      'Token.sol': readSoliditySource(CONTRACT_NAMES.token),
       [MAIN_SOURCE_NAME]: readSoliditySource(CONTRACT_NAMES.cre),
     })
 
@@ -211,7 +211,7 @@ export const deployKycContract = {
   },
   async resolve(root, { deployer, contractName }) {
     let compiledContractSource = compileContract({
-      './Ownable.sol': readSoliditySource(CONTRACT_NAMES.ownable),
+      'Ownable.sol': readSoliditySource(CONTRACT_NAMES.ownable),
       [MAIN_SOURCE_NAME]: readSoliditySource(CONTRACT_NAMES.kyc),
     })
 
@@ -222,9 +222,7 @@ export const deployKycContract = {
       `0x${contractCode}`,
       JSON.parse(contractAbi),
       deployer,
-      [
-        contractName,
-      ]
+      [contractName]
     ).catch((err) => {
       throw new Error(`合约部署失败 ${err.message} `)
     })
@@ -271,11 +269,11 @@ export const deployAssetContract = {
     } = contractArgs
 
     let compiledContractSource = compileContract({
-      './SafeMath.sol': readSoliditySource(CONTRACT_NAMES.math),
-      './Ownable.sol': readSoliditySource(CONTRACT_NAMES.ownable),
-      './ERC20.sol': readSoliditySource(CONTRACT_NAMES.erc20),
-      './Token.sol': readSoliditySource(CONTRACT_NAMES.token),
-      './KnowYourCustomer.sol': readSoliditySource(CONTRACT_NAMES.kyc),
+      'SafeMath.sol': readSoliditySource(CONTRACT_NAMES.math),
+      'Ownable.sol': readSoliditySource(CONTRACT_NAMES.ownable),
+      'ERC20.sol': readSoliditySource(CONTRACT_NAMES.erc20),
+      'Token.sol': readSoliditySource(CONTRACT_NAMES.token),
+      'KnowYourCustomer.sol': readSoliditySource(CONTRACT_NAMES.kyc),
       [MAIN_SOURCE_NAME]: readSoliditySource(CONTRACT_NAMES.asset),
     })
 
@@ -376,6 +374,10 @@ export const readContractMethod = {
   type: str,
   description: '调用合约只读方法',
   args: {
+    caller: {
+      type: new NotNull(str),
+      description: '调用此方法的钱包地址',
+    },
     contractName: {
       type: new NotNull(str),
       description: '合约名称',
@@ -390,13 +392,19 @@ export const readContractMethod = {
     },
   },
   async resolve(root, {
+    caller,
     contractName,
     methodName,
     paramArrInJson,
   }) {
-    let contract = await getContractInstance(contractName)
+    let contract = await getContractAndUnlockAccount(contractName, caller)
     let paramArr = JSON.parse(decodeURIComponent(paramArrInJson)) || []
-    return contract.methods[methodName](...paramArr).call(null)
+    let res = await contract.methods[methodName](...paramArr).call({
+      from: caller,
+    })
+    // let res = await contract.methods[methodName](...paramArr).send({ from: caller })
+    // console.log(res)
+    return JSON.stringify(res)
   },
 }
 
@@ -428,8 +436,10 @@ export const writeContractMethod = {
     paramArrInJson,
   }, { session }) {
     let contract = await getContractAndUnlockAccount(contractName, caller)
-    let paramArr = JSON.parse(decodeURIComponent(paramArrInJson))
-    // 解锁锁定的代币
+    let paramArr = JSON.parse(decodeURIComponent(paramArrInJson)) || []
+    // let result = await contract.methods[methodName](...paramArr).send({ from: caller })
+    // console.log(result)
+    // return JSON.stringify(result)
     return new Promise((resolve, reject) => {
       contract
         .methods[methodName](...paramArr)

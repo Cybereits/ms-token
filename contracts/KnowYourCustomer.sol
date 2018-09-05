@@ -33,11 +33,11 @@ contract KnowYourCustomer is Ownable {
     /**
     * Owner request a verification for address
     */
-    function setValidToken(address _to, uint16 _value) public onlyOwner {
-        require(white_list[_to] != Status.Valid, "Address has already been verified");
-        require(white_list[_to] != Status.Frozen, "Address has been frozen");
-        require(vt_set[_to] != 0, "Address has already been allocated a valid token");
-        vt_set[_to] = _value;
+    function setValidToken(address addr, uint16 token) public onlyOwner {
+        require(white_list[addr] != Status.Valid, "Address has already been verified");
+        require(white_list[addr] != Status.Frozen, "Address has been frozen");
+        require(vt_set[addr] == 0, "Address has already been allocated a valid token");
+        vt_set[addr] = token;
     }
 
     /**
