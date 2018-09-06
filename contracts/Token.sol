@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 import "./SafeMath.sol";
 import "./ERC20.sol";
@@ -36,7 +36,6 @@ contract Token is ERC20, SafeMath {
         balances[to] = add(balances[to], value);
 
         emit Transfer(from, to, value);
-
         return true;
     }
 

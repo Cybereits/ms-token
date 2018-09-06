@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 import "./KnowYourCustomer.sol";
 import "./Token.sol";
@@ -13,65 +13,65 @@ contract AssetToken is Token, Ownable {
 
     KnowYourCustomer kyc;
 
-    address public migrationMaster = msg.sender;
     address public chargeAddress = msg.sender;
 
-    constructor(uint256 total, uint _decimals, string _name, string _symbol, address _kycContractAddress) public {
-        decimals = _decimals;
+    constructor(uint256 total, uint token_decimals, string token_name, string token_symbol, address kyc_ref) public {
+        decimals = token_decimals;
         uint256 multiplier = 10 ** decimals;
         supply = mul(total, multiplier);
         balances[msg.sender] = supply;
-        name = _name;
-        symbol = _symbol;
-        kyc = KnowYourCustomer(_kycContractAddress);
+        name = token_name;
+        symbol = token_symbol;
+        kyc = KnowYourCustomer(kyc_ref);
     }
 
-    function changeChargeAddress(address _addr) public onlyOwner {
-        chargeAddress = _addr;
+    function changeChargeAddress(address addr) public onlyOwner {
+        chargeAddress = addr;
     }
 
-    function changeFee(uint256 _fee) public onlyOwner returns (uint256) {
-        fee = _fee;
+    function changeFee(uint charge_fee) public onlyOwner returns (uint current_fee) {
+        fee = charge_fee;
         return fee;
     }
 
-    function transfer(address _to, uint _value) public returns (bool ok) {
-        require(kyc.isVerified(_to), "Destination address does not in white list yet");
-        require(_value <= balances[msg.sender], "Balance not enough");
-        require(balances[_to] < add(balances[_to], _value), "Value is invalid");
+    function transfer(address addr_to, uint amount) public returns (bool ok) {
+        require(kyc.isVerified(addr_to), "Destination address is invalid");
+        require(amount <= balances[msg.sender], "Balance not enough");
+        require(balances[addr_to] < add(balances[addr_to], amount), "Value is invalid");
 
-        if (fee != 0 && msg.sender != migrationMaster ) {
-            uint256 feeShouldTake = mul(_value, fee) / 10000;
-            balances[_to] = add(balanceOf(_to), sub(_value, feeShouldTake));
+        if (fee != 0 && msg.sender != owner) {
+            uint256 feeShouldTake = div(mul(amount, fee), 10000);
+            balances[addr_to] = add(balanceOf(addr_to), sub(amount, feeShouldTake));
             balances[chargeAddress] = add(balanceOf(chargeAddress), feeShouldTake);
-            balances[msg.sender] = sub(balanceOf(msg.sender), _value);
-            emit Transfer(msg.sender, _to, _value);
+            balances[msg.sender] = sub(balanceOf(msg.sender), amount);
+            emit Transfer(msg.sender, addr_to, amount);
         } else {
-            balances[_to] = add(balanceOf(_to), _value);
-            balances[msg.sender] = sub(balanceOf(msg.sender), _value);
-            emit Transfer(msg.sender, _to, _value);
+            balances[addr_to] = add(balanceOf(addr_to), amount);
+            balances[msg.sender] = sub(balanceOf(msg.sender), amount);
+            emit Transfer(msg.sender, addr_to, amount);
         }
 
         return true;
     }
 
-    function transferFrom(address _from, address _to, uint _value) public returns (bool) {
-        assert(kyc.isVerified(_from) && kyc.isVerified(_to));
-        assert(balanceOf(_from) >= _value);
-        assert(approvals[_from][msg.sender] >= _value);
+    function transferFrom(address addr_from, address addr_to, uint amount) public returns (bool ok) {
+        require(kyc.isVerified(addr_from), "Origin address is invalid");
+        require(kyc.isVerified(addr_to), "Destination address is invalid");
+        require(amount <= balanceOf(addr_from), "Balance not enough");
+        require(amount <= approvals[addr_from][msg.sender], "Approval balance is not enough");
 
-        if (fee != 0 && _from != migrationMaster ) {
-            uint256 feeShouldTake = mul(_value, fee) / 10000;
-            balances[_to] = add(balanceOf(_to), sub(_value, feeShouldTake));
+        if (fee != 0 && addr_from != owner) {
+            uint256 feeShouldTake = div(mul(amount, fee), 10000);
+            balances[addr_to] = add(balanceOf(addr_to), sub(amount, feeShouldTake));
             balances[chargeAddress] = add(balanceOf(chargeAddress), feeShouldTake);
-            balances[_from] = sub(balanceOf(_from), _value);
-            approvals[_from][msg.sender] = sub(approvals[_from][msg.sender], _value);
-            emit Transfer(msg.sender, _to, _value);
+            balances[addr_from] = sub(balanceOf(addr_from), amount);
+            approvals[addr_from][msg.sender] = sub(approvals[addr_from][msg.sender], amount);
+            emit Transfer(msg.sender, addr_to, amount);
         } else {
-            balances[_to] = add(balanceOf(_to), _value);
-            balances[_from] = sub(balanceOf(_from), _value);
-            approvals[_from][msg.sender] = sub(approvals[_from][msg.sender], _value);
-            emit Transfer(_from, _to, _value);
+            balances[addr_to] = add(balanceOf(addr_to), amount);
+            balances[addr_from] = sub(balanceOf(addr_from), amount);
+            approvals[addr_from][msg.sender] = sub(approvals[addr_from][msg.sender], amount);
+            emit Transfer(addr_from, addr_to, amount);
         }
 
         return true;
