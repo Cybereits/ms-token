@@ -17,3 +17,5 @@ require('./app')
 require('../core/jobs')
 // 开启合约监听
 require('../core/listeners')
+// 同步一次交易状态
+require('../core/scenes/transaction').syncTransactionState()

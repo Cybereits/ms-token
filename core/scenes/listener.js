@@ -47,8 +47,8 @@ export function createEthEventListener() {
             .map(txid => () => connection.eth.getTransactionReceipt(txid)
               .then((receipt) => {
                 if (receipt) {
-                  let { contractAddress, from, to } = receipt
-                  if (contractAddress === null) {
+                  let { status, contractAddress, from, to } = receipt
+                  if (contractAddress === null && status === true) {
                     eventBus.emit('Transaction', {
                       from: connection.eth.extend.utils.toChecksumAddress(from),
                       to: connection.eth.extend.utils.toChecksumAddress(to),

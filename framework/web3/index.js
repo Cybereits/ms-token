@@ -4,34 +4,37 @@ import { clients } from '../../config/env.json'
 
 const reconnectDelay = 2
 
-function establishConnection(uri) {
-  let conn = new Web3(new Web3.providers.WebsocketProvider(uri))
-  let onclose = () => {
-    console.warn(`[${uri}] 钱包客户端连接失败，${reconnectDelay} 秒后尝试重连...`)
-    setTimeout(() => {
-      conn = establishConnection(uri)
-    }, reconnectDelay * 1000)
-  }
-
-  let onconnect = () => {
-    console.info(`[${uri}] 钱包客户端连接成功!`)
-  }
-
-  conn.__uri = uri
-
-  conn.currentProvider.on('end', onclose)
-  conn.currentProvider.on('connect', onconnect)
-
-  return conn
-}
-
-function initEthConnect(wsUri) {
-  let conn = establishConnection(wsUri)
-  return () => conn
-}
-
 let _index = 0
-let _pool = clients.map(initEthConnect)
+let _pool = []
+
+class EstablishedConnection {
+
+  constructor(uri) {
+    this.__uri = uri
+    this.buildConn()
+  }
+
+  buildConn() {
+    this.conn = new Web3(new Web3.providers.WebsocketProvider(this.__uri))
+    this.conn.currentProvider.on('end', this.onClonse.bind(this))
+    this.conn.currentProvider.on('connect', this.onConnected.bind(this))
+  }
+
+  onClonse() {
+    console.warn(`[${this.__uri}] 钱包客户端连接失败，${reconnectDelay} 秒后尝试重连...`)
+    setTimeout(this.buildConn.bind(this), reconnectDelay * 1000)
+  }
+
+  onConnected() {
+    console.info(`[${this.__uri}] 钱包客户端连接成功!`)
+  }
+
+  getConn() {
+    return this.conn
+  }
+}
+
+_pool = clients.map(clientUri => new EstablishedConnection(clientUri))
 
 /**
  * 获取钱包客户端链接
@@ -40,24 +43,22 @@ let _pool = clients.map(initEthConnect)
  */
 function getConnection(uri) {
   if (uri) {
-    let _matched_index = _pool.findIndex(c => c().__uri === uri)
+    let _matched = _pool.filter(c => c.__uri === uri)[0]
     // 查找当前链接池中是否有对应的钱包链接
-    if (_matched_index > -1) {
+    if (_matched) {
       // 如果有则返回对应链接
       console.log(`使用链接池中的链接 [${uri}]`)
-      return _pool[_matched_index]()
+      return _matched.getConn()
     } else {
       // 如果没有 则新建链接
       console.log(`新建临时链接 [${uri}]`)
-      let conn = new Web3(new Web3.providers.WebsocketProvider(uri))
-      conn.__uri = uri
-      return conn
+      return new EstablishedConnection(uri).getConn()
     }
   } else {
     let len = _pool.length
     if (len > 0) {
       _index = (_index + 1) % len
-      return _pool[_index]()
+      return _pool[_index].getConn()
     } else {
       throw new Error('没有可用的钱包链接...')
     }

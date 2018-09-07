@@ -5,103 +5,10 @@ import { getConnByAddressThenUnlock } from './account'
 import { getContractInstance } from './contract'
 import { TOKEN_TYPES, CONTRACT_NAMES, STATUS } from '../enums'
 import { ContractMetaModel, TxRecordModel } from '../schemas'
-import { publishTransaction, publishConfirmInfo } from '../listeners/transaction'
+import { publishTransaction, publishConfirmInfo, publishFailedInfo } from '../listeners/transaction'
 import { confirmBlockLimitation } from '../../config/env.json'
 
 BN.config({ DECIMAL_PLACES: 5 })
-
-// /**
-//  * 获取代币总量（调用totalSupply方法）
-//  * @param {*} connect web3链接
-//  */
-// export async function getTotal(connect) {
-//   let tokenContract = await getContractInstance(CONTRACT_NAMES.cre)
-//   let amount = await tokenContract.methods.totalSupply().call(null)
-
-//   return amount / (10 ** tokenContract.decimal)
-// }
-
-// /**
-//  * 查询钱包地址下的代币数额及代币总量，占比等信息
-//  * @param {*} userAddress 要查询的钱包地址
-//  */
-// export async function getTokenBalanceFullInfo(userAddress) {
-//   let totalPromise = getTotal(getConnection())
-//   let balancePromise = getTokenBalance(userAddress)
-
-//   const tokenTotalAmount = await totalPromise
-//   const userBalance = await balancePromise
-
-//   return {
-//     total: tokenTotalAmount,
-//     userAddress,
-//     balance: userBalance,
-//     proportion: +(+((userBalance / tokenTotalAmount) * 100).toFixed(2)),
-//   }
-// }
-
-// /**
-//  * 估算发送代币所需油费
-//  * @param {string} toAddress 转入地址
-//  * @param {number} amount 发送代币数额
-//  */
-// export async function estimateGasOfSendToken(toAddress, amount) {
-//   let tokenContract = await getContractInstance(CONTRACT_NAMES.cre)
-//   return tokenContract.methods.Transfer(toAddress, amount).estimateGas()
-// }
-
-// /**
-//  * 通过输入的数值计算得出对应的代币数额
-//  * @param {string|number} inputBigNumber 输入的大数值
-//  * @param {number} decimal 合约规定的代币精度
-//  * @returns {number} 计算所得代币数额
-//  */
-// export function getTokenAmountByBigNumber(inputBigNumber, decimal) {
-//   let _bigNumber = +inputBigNumber
-//   let _multiplier = 10 ** decimal
-//   if (isNaN(_bigNumber)) {
-//     if (typeof inputBigNumber === 'string') {
-//       if (inputBigNumber.indexOf('0x') !== 0) {
-//         // 默认加上16进制的前缀
-//         _bigNumber = +`0x${inputBigNumber}`
-//         if (isNaN(_bigNumber)) {
-//           // 如果非有效数值则返回 0
-//           return 0
-//         }
-//       }
-//     } else {
-//       // 不知道传入的是个什么类型,返回 0
-//       return 0
-//     }
-//   }
-//   return _bigNumber / _multiplier
-// }
-
-// /**
-//  * 解析交易记录中的 input 参数
-//  * warning: unsafe
-//  * @param {string} inputStr input 参数字符串
-//  * @param {number} decimal 合约规定的代币精度
-//  * @returns {Array} 解析后的参数数组
-//  */
-// export function decodeTransferInput(inputStr, decimal) {
-//   // Transfer转账的数据格式
-//   // 0xa9059cbb0000000000000000000000002abe40823174787749628be669d9d9ae4da8443400000000000000000000000000000000000000000000025a5419af66253c0000
-//   let str = inputStr.toString()
-//   let seperator = '00000000000000000000000'  // 23个0
-//   if (str.length >= 10) {
-//     let arr = str.split(seperator)
-//     // 参数解析后
-//     // 第一个参数是函数的id 16进制格式，不需要改变
-//     // 第二个参数是转入地址，加 0x 前缀转换成有效地址
-//     arr[1] = `0x${arr[1]}`
-//     // 第三个参数是交易的代币数额 需要转换成有效数值
-//     arr[2] = getTokenAmountByBigNumber(arr[2], decimal)
-//     return arr
-//   } else {
-//     return [str]
-//   }
-// }
 
 function releasePromEvent(promEvent) {
   if (promEvent) {
@@ -109,6 +16,35 @@ function releasePromEvent(promEvent) {
     promEvent.off('transactionHash')
   }
   promEvent = null
+}
+
+function onConfirmationWithEvent(promEvent) {
+  return async (confirmationNumber, receipt) => {
+    let { transactionHash, status, gasUsed } = receipt
+    getConnection().eth.getTransactionReceipt(transactionHash, (e, data) => {
+      if (e !== null) {
+        console.log('could not find the transaction')
+      } else {
+        console.log(data, data.status)
+      }
+    })
+    let { gas } = await getConnection().eth.getTransaction(transactionHash)
+    if (gasUsed > gas) {
+      // 油费不足
+      publishFailedInfo(transactionHash, '油费不足，交易执行失败')
+      releasePromEvent(promEvent)
+    } else if (confirmationNumber >= confirmBlockLimitation) {
+      if (status === '0x0') {
+        // 执行失败
+        publishFailedInfo(transactionHash)
+        releasePromEvent(promEvent)
+      } else {
+        publishConfirmInfo(transactionHash)
+        releasePromEvent(promEvent)
+      }
+    }
+    // else: still waiting for confirmation...
+  }
 }
 
 /**
@@ -145,50 +81,36 @@ export async function sendToken(fromAddress, toAddress, amount, options = {}) {
   let _from_addr = fromAddress.trim()
   let _to_addr = toAddress.trim()
   let _amount = new BN(amount)
-  if (_amount.lessThanOrEqualTo(0)) {
-    throw new Error('忽略转账额度小于等于0的请求')
-  } else {
-    let {
-      tokenType = TOKEN_TYPES.cre,
-      gasPrice,
-      gas,
-    } = options
+  let {
+    tokenType = TOKEN_TYPES.cre,
+    gasPrice,
+    gas,
+  } = options
 
-    let contractMetaPromise = ContractMetaModel.findOne({ symbol: tokenType }, { name: 1 })
-    let getConnPromise = getConnByAddressThenUnlock(_from_addr)
+  let contractMetaPromise = ContractMetaModel.findOne({ symbol: tokenType }, { name: 1 })
+  let getConnPromise = getConnByAddressThenUnlock(_from_addr)
 
-    let { name } = await contractMetaPromise
-    let conn = await getConnPromise
+  let { name } = await contractMetaPromise
+  let conn = await getConnPromise
 
-    // if (!gasPrice) {
-    //   gasPrice = await conn.eth.getGasPrice()
-    // }
+  return new Promise(async (resolve, reject) => {
+    let tokenContract = await getContractInstance(name, conn)
+    let _multiplier = 10 ** tokenContract.decimal
+    let _sendAmount = _amount.mul(_multiplier)
 
-    return new Promise(async (resolve, reject) => {
-      let tokenContract = await getContractInstance(name, conn)
-      let _multiplier = 10 ** tokenContract.decimal
-      let _sendAmount = _amount.mul(_multiplier)
+    let promEvent = tokenContract
+      .methods
+      .transfer(_to_addr, _sendAmount.toString(10))
+      .send({ from: _from_addr, gasPrice, gas })
 
-      let promEvent = tokenContract
-        .methods
-        .transfer(_to_addr, _sendAmount)
-        .send({ from: _from_addr, gasPrice, gas })
-
-      promEvent
-        .on('transactionHash', (txid) => {
-          publishTransaction(txid)
-          resolve(txid)
-        })
-        .on('confirmation', (confirmationNumber, receipt) => {
-          if (confirmationNumber >= confirmBlockLimitation) {
-            let { transactionHash } = receipt
-            publishConfirmInfo(transactionHash)
-            releasePromEvent(promEvent)
-          }
-        })
-        .catch(reject)
-    })
-  }
+    promEvent
+      .on('transactionHash', (txid) => {
+        publishTransaction(txid)
+        resolve(txid)
+      })
+      .on('confirmation', onConfirmationWithEvent(promEvent))
+      .catch(reject)
+  })
 }
 
 /**
@@ -204,35 +126,25 @@ export async function sendETH(fromAddress, toAddress, amount, options = {}) {
   let _to_addr = toAddress.trim()
   let { gasPrice, gas } = options
   let _amount = new BN(amount)
-  if (_amount.lessThanOrEqualTo(0)) {
-    throw new Error('忽略转账额度小于等于0的请求')
-  } else {
-    let conn = await getConnByAddressThenUnlock(_from_addr)
+  let conn = await getConnByAddressThenUnlock(_from_addr)
 
-    return new Promise((resolve, reject) => {
-      let promEvent = conn.eth.sendTransaction({
-        from: _from_addr,
-        to: _to_addr,
-        value: conn.eth.extend.utils.toWei(_amount.toString(10), 'ether'),
-        gasPrice,
-        gas,
-      })
-
-      promEvent
-        .on('transactionHash', (txid) => {
-          publishTransaction(txid)
-          resolve(txid)
-        })
-        .on('confirmation', (confirmationNumber, receipt) => {
-          if (confirmationNumber >= confirmBlockLimitation) {
-            let { transactionHash } = receipt
-            publishConfirmInfo(transactionHash)
-            releasePromEvent(promEvent)
-          }
-        })
-        .catch(reject)
+  return new Promise((resolve, reject) => {
+    let promEvent = conn.eth.sendTransaction({
+      from: _from_addr,
+      to: _to_addr,
+      value: conn.eth.extend.utils.toWei(_amount.toString(10), 'ether'),
+      gasPrice,
+      gas,
     })
-  }
+
+    promEvent
+      .on('transactionHash', (txid) => {
+        publishTransaction(txid)
+        resolve(txid)
+      })
+      .on('confirmation', onConfirmationWithEvent(promEvent))
+      .catch(reject)
+  })
 }
 
 /**
