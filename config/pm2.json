@@ -1,5 +1,5 @@
 [{
-  "name": "token-service",
+  "name": "ms-token",
   "script": "./server/entry.js",
   "instances": 1,
   "cwd": "./",
