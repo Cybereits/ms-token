@@ -9,7 +9,6 @@
     "dev-geth": "mkdir -p geth-node & bash geth.dev.sh"
   },
   "dependencies": {
-    "agenda": "^1.0.3",
     "apollo-server-koa": "^1.4.0",
     "async-task-manager": "^1.0.2",
     "babel-core": "^6.26.0",
