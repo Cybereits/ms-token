@@ -30,6 +30,7 @@ class EstablishedConnection {
   }
 
   getConn() {
+    this.conn.__uri = this.__uri
     return this.conn
   }
 }
