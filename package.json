@@ -6,7 +6,7 @@
     "lint": "bash ./eslint.sh",
     "task": "node ./tasks",
     "test": "./node_modules/.bin/mocha -t 20s test/**/*.spec.js",
-    "dev-geth": "bash geth.dev.sh"
+    "dev-geth": "mkdir -p geth-node & bash geth.dev.sh"
   },
   "dependencies": {
     "agenda": "^1.0.3",
