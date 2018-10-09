@@ -11,10 +11,9 @@ import {
 
 import { ContractMetaModel, TxRecordModel } from '../../core/schemas'
 import { createAndDeployContract, getContractInstance } from '../../core/scenes/contract'
-import { getConnByAddressThenUnlock } from '../../core/scenes/account'
+import { getConnByAddressThenUnlock, updateAllAccountsForContract } from '../../core/scenes/account'
 import { CONTRACT_NAMES, STATUS } from '../../core/enums'
 import establishContractListener from '../../core/listeners/contract'
-import { updateAllAccounts } from '../../core/jobs/updateSysAccount'
 import { creContractArgs, commonContractArgs, contractMetaResult, contractFilter } from '../types/plainTypes'
 
 function readSoliditySource(filename) {
@@ -310,7 +309,7 @@ export const deployAssetContract = {
       })
       .then(() => {
         establishContractListener(contractName)
-        updateAllAccounts([contractName])
+        updateAllAccountsForContract([contractName])
         return '合约部署成功!'
       })
       .catch((err) => {
@@ -360,7 +359,7 @@ export const addERC20ContractMeta = {
     })
       .then(() => {
         establishContractListener(name)
-        updateAllAccounts([name])
+        updateAllAccountsForContract([name])
         return 'success'
       })
   },

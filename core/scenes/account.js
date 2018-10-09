@@ -1,6 +1,8 @@
+import { TaskCapsule, ParallelQueue } from 'async-task-manager'
+
 import { EthAccountModel } from '../schemas'
 import { getEthBalance, getTokenBalance } from './token'
-import { getTokenContractMeta } from './contract'
+import { getTokenContractMeta, getAllTokenContracts } from './contract'
 import getConnection from '../../framework/web3'
 
 export function unlockAccount(connect, unlockAccount, passWord) {
@@ -111,4 +113,41 @@ export async function checkIsSysThenUpdate(address, contractName) {
   } else {
     return false
   }
+}
+
+/**
+ * 更新系统下指定代币合约的所有账户
+ * @param {String} tokenContractNames 代币合约名称
+ */
+export async function updateAllAccountsForContract(tokenContractNames) {
+  const taskQueue = new ParallelQueue({ limit: 20, span: 500 })
+
+  let accounts = await getAllAccounts()
+
+  accounts.forEach((address) => {
+    taskQueue.add(new TaskCapsule(() => updateBalanceOfAccount(address)))
+    tokenContractNames.forEach((contractName) => {
+      taskQueue.add(new TaskCapsule(() => updateBalanceOfAccount(address, contractName)))
+    })
+  })
+
+  return taskQueue.consume()
+}
+
+/**
+ * 更新系统支持的代币合约的所有账户
+ */
+export async function syncAllSysAccounts() {
+
+  console.log('开始同步账户余额')
+  const tokenContractNames = await getAllTokenContracts().then(res => res.map(({ name }) => name))
+
+  return updateAllAccountsForContract(tokenContractNames)
+    .then(() => {
+      console.info('系统账户余额信息更新完成')
+      return true
+    }).catch((ex) => {
+      console.error(ex.message)
+      return false
+    })
 }
