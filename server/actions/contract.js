@@ -9,7 +9,7 @@ import {
   GraphQLInt as int,
 } from 'graphql'
 
-import { ContractMetaModel, TxRecordModel } from '../../core/schemas'
+import { ContractMetaModel, TxRecordModel, EthAccountModel } from '../../core/schemas'
 import { createAndDeployContract, getContractInstance } from '../../core/scenes/contract'
 import { getConnByAddressThenUnlock, updateAllAccountsForContract } from '../../core/scenes/account'
 import { CONTRACT_NAMES, STATUS } from '../../core/enums'
@@ -374,8 +374,8 @@ export const readContractMethod = {
   description: '调用合约只读方法',
   args: {
     caller: {
-      type: new NotNull(str),
-      description: '调用此方法的钱包地址',
+      type: str,
+      description: '调用函数的钱包地址',
     },
     contractName: {
       type: new NotNull(str),
@@ -396,11 +396,20 @@ export const readContractMethod = {
     methodName,
     paramArrInJson,
   }) {
+    console.log(caller)
+    if (!caller) {
+      // 因为是 query，不会产生写入费用，所以即便不指定钱包地址，会使用第一个钱包去调用
+      caller = await EthAccountModel.findOne({}, { account: 1 })
+      if (!caller) {
+        throw new Error('没有可以调用合约方法的有效钱包地址')
+      } else {
+        caller = caller.account
+      }
+    }
+
     let contract = await getContractAndUnlockAccount(contractName, caller)
     let paramArr = JSON.parse(decodeURIComponent(paramArrInJson)) || []
     let res = await contract.methods[methodName](...paramArr).call({ from: caller })
-    // let res = await contract.methods[methodName](...paramArr).send({ from: caller })
-    // console.log(res)
     return JSON.stringify(res)
   },
 }
