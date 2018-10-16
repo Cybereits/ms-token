@@ -235,6 +235,8 @@ export const serverStatesResult = new OutputObj({
   fields: {
     currentBlockHeight: { type: str, description: '当前区块高度' },
     gasPrice: { type: str, description: '当前油价' },
+    gasFee: { type: str, description: '当前油费' },
+    gasCost: { type: str, description: '当前转账花费' },
   },
 })
 
