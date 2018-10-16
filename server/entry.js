@@ -17,5 +17,3 @@ require('./app')
 require('../core/listeners')
 // 同步一次交易状态
 require('../core/scenes/transaction').syncTransactionState()
-// 同步所有的系统账户余额
-require('../core/scenes/account').syncAllSysAccounts()
