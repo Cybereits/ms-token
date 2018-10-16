@@ -22,9 +22,6 @@ export const serverStates = {
     // 当前转账手续费
     let gasFee = await gasFeePromise
 
-    console.log(typeof gasFee)
-    console.log(typeof gasPrice)
-
     return {
       currentBlockHeight,
       gasPrice: gasPrice.toString(10),
