@@ -8,7 +8,7 @@ import { ContractMetaModel, TxRecordModel } from '../schemas'
 import { publishTransaction, publishConfirmInfo, publishFailedInfo } from '../listeners/transaction'
 import { confirmBlockLimitation } from '../../config/env.json'
 
-BN.config({ DECIMAL_PLACES: 5 })
+BN.config({ DECIMAL_PLACES: 20 })
 
 function releasePromEvent(promEvent) {
   if (promEvent) {
@@ -21,13 +21,6 @@ function releasePromEvent(promEvent) {
 function onConfirmationWithEvent(promEvent) {
   return async (confirmationNumber, receipt) => {
     let { transactionHash, status, gasUsed } = receipt
-    getConnection().eth.getTransactionReceipt(transactionHash, (e, data) => {
-      if (e !== null) {
-        console.log('could not find the transaction')
-      } else {
-        console.log(data, data.status)
-      }
-    })
     let { gas } = await getConnection().eth.getTransaction(transactionHash)
     if (gasUsed > gas) {
       // 油费不足
@@ -36,7 +29,7 @@ function onConfirmationWithEvent(promEvent) {
     } else if (confirmationNumber >= confirmBlockLimitation) {
       if (status === '0x0') {
         // 执行失败
-        publishFailedInfo(transactionHash)
+        publishFailedInfo(transactionHash, '执行失败')
         releasePromEvent(promEvent)
       } else {
         publishConfirmInfo(transactionHash)
@@ -80,7 +73,7 @@ export async function sendToken(fromAddress, toAddress, amount, options = {}) {
   console.log(`send ${amount} token from ${fromAddress} to ${toAddress}`)
   let _from_addr = fromAddress.trim()
   let _to_addr = toAddress.trim()
-  let _amount = new BN(amount)
+  let _amount = new BN(amount.toString(10))
   let {
     tokenType = TOKEN_TYPES.cre,
     gasPrice,
@@ -125,7 +118,7 @@ export async function sendETH(fromAddress, toAddress, amount, options = {}) {
   let _from_addr = fromAddress.trim()
   let _to_addr = toAddress.trim()
   let { gasPrice, gas } = options
-  let _amount = new BN(amount)
+  let _amount = new BN(amount.toString(10))
   let conn = await getConnByAddressThenUnlock(_from_addr)
 
   return new Promise((resolve, reject) => {

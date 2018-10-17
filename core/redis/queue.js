@@ -4,8 +4,8 @@
  */
 import { tempConnection } from '../../framework/redis'
 
-const SEPERATOR = '|'
-const SYNC_QUEUE_SET_NAME = 'sync_task_queue'
+const SEPERATOR = '@'
+const SYNC_QUEUE_SET_NAME = 'ms_token_sync_task_queue'
 
 function serialize(address, type) {
   return [address, type].join(SEPERATOR)
@@ -20,7 +20,7 @@ function deserialize(str) {
  * @param {String} address 钱包地址
  * @param {String} type 代币类型
  */
-export function addTrackedTransaction(address, type) {
+export function addAccountSyncInfo(address, type) {
   return tempConnection.sadd(SYNC_QUEUE_SET_NAME, serialize(address, type))
 }
 
@@ -29,7 +29,7 @@ export function addTrackedTransaction(address, type) {
  * @param {String} address 钱包地址
  * @param {String} type 代币类型
  */
-export function removeTrackedTransaction(address, type) {
+export function removeAccountSyncInfo(address, type) {
   return tempConnection.srem(SYNC_QUEUE_SET_NAME, serialize(address, type))
 }
 
@@ -37,7 +37,7 @@ export function removeTrackedTransaction(address, type) {
  * 获取需要同步的钱包信息
  * @returns {Array<[String,String]>}
  */
-export async function getTrackedTransactions() {
+export async function getAllAccountSyncInfo() {
   const set = await tempConnection.smembers(SYNC_QUEUE_SET_NAME)
   return set.map(deserialize)
 }

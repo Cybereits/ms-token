@@ -1,6 +1,7 @@
 import { TaskCapsule, ParallelQueue } from 'async-task-manager'
 
 import { EthAccountModel } from '../schemas'
+import { addAccountSyncInfo, removeAccountSyncInfo, getAllAccountSyncInfo } from '../redis/queue'
 import { getEthBalance, getTokenBalance } from './token'
 import { getTokenContractMeta, getAllTokenContracts } from './contract'
 import getConnection from '../../framework/web3'
@@ -69,27 +70,40 @@ export function isSysAccount(address) {
 
 /**
  * 更新指定钱包的账户余额
- * @param {string} address 钱包地址
- * @param {string} contractName 代币合约名称
+ * @param {String} address 钱包地址
+ * @param {String} contractName 代币合约名称
+ * @param {Boolean} immediately 是否立刻更新
  * @returns {Promise}
  */
-export async function updateBalanceOfAccount(address, contractName) {
+export async function sayIWannaUpdateTheBalanceOfSomeAccount(address, contractName = 'eth', immediately = false) {
+  if (immediately) {
+    return doUpdateBalanceOfAccount(address, contractName)
+  } else {
+    return addAccountSyncInfo(address, contractName)
+  }
+}
+
+/**
+ * 这才是真正的执行更新账户余额的操作，哈哈哈
+ * @param {String} address 钱包地址
+ * @param {String} name 合约类型
+ */
+export async function doUpdateBalanceOfAccount(address, name) {
   let amount
   let symbol
 
-  if (!contractName) {
-    // 默认视作 eth 账户
+  if (name === 'eth') {
+    symbol = name
     amount = await getEthBalance(address)
-    symbol = 'eth'
   } else {
-    amount = await getTokenBalance(address, contractName)
-    let tokenContract = await getTokenContractMeta(contractName)
-    symbol = tokenContract.symbol
+    amount = await getTokenBalance(address, name)
+    let contractMeta = await getTokenContractMeta(name)
+    symbol = contractMeta.symbol
   }
 
   let account = await EthAccountModel.findOne({ account: address })
 
-  console.log(`[update account balance]: ${address} [${amount}] [${symbol}]`)
+  console.log(`[update account balance]: ${address} [${amount}] [${name}]`)
 
   if (!account.balances) {
     account.balances = {}
@@ -102,14 +116,14 @@ export async function updateBalanceOfAccount(address, contractName) {
 
 /**
  * 检查是否为系统地址，如果是则更新账户余额
- * @param {string} address 钱包地址
- * @param {string} contractName 代币类型
+ * @param {String} address 钱包地址
+ * @param {String} contractName 代币类型
  * @returns {Promise}
  */
 export async function checkIsSysThenUpdate(address, contractName) {
   let result = await isSysAccount(address)
   if (result) {
-    return updateBalanceOfAccount(address, contractName)
+    return sayIWannaUpdateTheBalanceOfSomeAccount(address, contractName)
   } else {
     return false
   }
@@ -125,9 +139,9 @@ export async function updateAllAccountsForContract(tokenContractNames) {
   let accounts = await getAllAccounts()
 
   accounts.forEach((address) => {
-    taskQueue.add(new TaskCapsule(() => updateBalanceOfAccount(address)))
+    taskQueue.add(new TaskCapsule(() => sayIWannaUpdateTheBalanceOfSomeAccount(address, 'eth', true)))
     tokenContractNames.forEach((contractName) => {
-      taskQueue.add(new TaskCapsule(() => updateBalanceOfAccount(address, contractName)))
+      taskQueue.add(new TaskCapsule(() => sayIWannaUpdateTheBalanceOfSomeAccount(address, contractName, true)))
     })
   })
 
@@ -150,4 +164,26 @@ export async function syncAllSysAccounts() {
       console.error(ex.message)
       return false
     })
+}
+
+export async function handlePendingBalanceUpdateJobs() {
+  let pendingJobs = await getAllAccountSyncInfo()
+  if (pendingJobs && pendingJobs.length > 0) {
+    let queue = new ParallelQueue({
+      limit: 30,
+      toleration: 0,
+    })
+
+    pendingJobs.forEach(([address, type]) =>
+      queue.add(
+        new TaskCapsule(
+          () => doUpdateBalanceOfAccount(address, type).then(() => removeAccountSyncInfo(address, type))
+        )
+      )
+    )
+
+    return queue.consume()
+  } else {
+    return false
+  }
 }

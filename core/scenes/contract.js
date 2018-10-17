@@ -2,38 +2,43 @@ import getConnection from '../../framework/web3'
 import { getConnByAddressThenUnlock } from './account'
 import { ContractMetaModel } from '../schemas'
 import { CONTRACT_NAMES } from '../enums'
+import { getCacheValue, upsertCacheValue } from '../redis/cache'
 
 /**
  * 获取合约元信息
  * @param {string} contractName 合约名称
  * @returns {object|null} 合约元信息对象
  */
-export function getTokenContractMeta(contractName = CONTRACT_NAMES.cre) {
-  return ContractMetaModel
-    .findOne({ name: contractName })
-    .then(({
-      name,
-      symbol,
-      decimal,
-      codes,
-      abis,
-      owner,
-      address,
-      args,
-    }) => ({
-      name,
-      symbol,
-      decimal,
-      codes,
-      owner,
-      abis: JSON.parse(abis),
-      address,
-      args: args ? JSON.parse(args) : args,
-    }))
-    .catch((ex) => {
-      console.error(ex)
-      return null
-    })
+export async function getTokenContractMeta(contractName = CONTRACT_NAMES.cre) {
+  const key = `contract_${contractName}`
+  let value = await getCacheValue(key)
+  if (value) {
+    return value
+  } else {
+    value = await ContractMetaModel
+      .findOne({ name: contractName })
+      .then(({
+        name,
+        symbol,
+        decimal,
+        codes,
+        abis,
+        owner,
+        address,
+        args,
+      }) => ({
+        name,
+        symbol,
+        decimal,
+        codes,
+        owner,
+        abis: JSON.parse(abis),
+        address,
+        args: args ? JSON.parse(args) : args,
+      }))
+    upsertCacheValue(key, value)
+    return value
+  }
 }
 
 /**

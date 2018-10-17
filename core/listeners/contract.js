@@ -5,6 +5,8 @@ export default function establishContractListener(contractName) {
   console.info(`启动 ${contractName} 合约转账监听`)
   createContractEventListener(contractName)
     .on('Transfer', async ({ returnValues }) => {
+      console.log('return values')
+      console.log(returnValues)
       let { from, to } = returnValues
       checkIsSysThenUpdate(from, contractName)
       checkIsSysThenUpdate(to, contractName)
