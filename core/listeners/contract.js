@@ -5,9 +5,8 @@ export default function establishContractListener(contractName) {
   console.info(`启动 ${contractName} 合约转账监听`)
   createContractEventListener(contractName)
     .on('Transfer', async ({ returnValues }) => {
-      console.log('return values')
-      console.log(returnValues)
       let { from, to } = returnValues
+      checkIsSysThenUpdate(from) // 因为要花费油费 所以检查更新发送方的以太账户
       checkIsSysThenUpdate(from, contractName)
       checkIsSysThenUpdate(to, contractName)
     })
