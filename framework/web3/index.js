@@ -67,7 +67,9 @@ function clientSyncStateCheck() {
     let conn = ec.getConn()
     let clientBlockNumber = await conn.eth.getBlockNumber()
     if (clientBlockNumber < curr_block_number - BLOCK_SYNC_DELAY_TOLERATION) {
-      ec.disable(`${conn.__uri} 客户端区块同步高度为 ${clientBlockNumber} 落后于当前链上区块高度 ${curr_block_number}`)
+      if (ec.usable()) {
+        ec.disable(`${conn.__uri} 客户端区块同步高度为 ${clientBlockNumber} 落后于当前链上区块高度 ${curr_block_number}`)
+      }
     } else {
       if (clientBlockNumber > curr_block_number) {
         curr_block_number = clientBlockNumber
@@ -78,6 +80,8 @@ function clientSyncStateCheck() {
     }
   })
 }
+
+clientSyncStateCheck()
 
 setInterval(clientSyncStateCheck, 1000 * STATE_CHECK_INTERVAL)
 
