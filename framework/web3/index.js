@@ -64,7 +64,7 @@ ec_pool = clients.map(clientUri => new EstablishedConnection(clientUri))
 
 function clientSyncStateCheck() {
   ec_pool.forEach(async (ec) => {
-    let conn = ec.getConn()
+    let conn = ec.conn
     let clientBlockNumber = await conn.eth.getBlockNumber()
     if (clientBlockNumber < curr_block_number - BLOCK_SYNC_DELAY_TOLERATION) {
       if (ec.usable()) {

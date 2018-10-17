@@ -146,10 +146,11 @@ export async function syncTransactionState() {
     })
 
     // 消费任务队列
-    queue.consume()
+    return queue.consume()
       .then(() => { console.log('交易状态同步完毕') })
       .catch((ex) => { console.error(`交易状态同步失败 ${ex}`) })
   } else {
     console.log('没有需要同步的交易状态')
+    return Promise.resolve(true)
   }
 }
