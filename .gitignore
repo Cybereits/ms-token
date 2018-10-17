@@ -20,3 +20,6 @@ migration_scripts/
 
 # static files
 static/
+
+# test file
+test.js

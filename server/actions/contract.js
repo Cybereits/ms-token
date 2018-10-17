@@ -444,7 +444,6 @@ export const writeContractMethod = {
     let contract = await getContractAndUnlockAccount(contractName, caller)
     let paramArr = JSON.parse(decodeURIComponent(paramArrInJson)) || []
     // let result = await contract.methods[methodName](...paramArr).send({ from: caller })
-    // console.log(result)
     // return JSON.stringify(result)
     return new Promise((resolve, reject) => {
       contract
