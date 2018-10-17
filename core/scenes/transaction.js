@@ -105,9 +105,8 @@ export async function syncTransactionState() {
     status: { $in: [STATUS.sending, STATUS.error] },
   }).catch((ex) => { console.error(`交易状态同步失败 ${ex}`) })
 
-  console.log(`将 ${sendingTxs.length} 比交易信息添加到同步队列`)
-
   if (sendingTxs.length > 0) {
+    console.log(`将 ${sendingTxs.length} 比交易信息添加到同步队列`)
     // 创建任务队列
     let queue = new ParallelQueue({
       limit: 50,
@@ -127,9 +126,11 @@ export async function syncTransactionState() {
             if (txReceipt.status === '0x0') {
               // 发送失败
               failTransaction(transaction, '交易失败，请到 etherscan.io 手动查询出错原因').then(resolve).catch(reject)
-            } else {
+            } else if (txReceipt.status === '0x1') {
               // 确认成功
               confirmTransaction(transaction).then(resolve).catch(reject)
+            } else {
+              errorTransaction(transaction, `交易发送成功，但执行结果状态码为 ${txReceipt.status}，请到 etherscan.io 手动查询出错原因`).then(resolve).catch(reject)
             }
           } else if (Date.now() - ((1000 * 60 * 60) * confirmTimeoutHours) > new Date(transaction.sendTime)) {
             errorTransaction(transaction, `交易发布 ${confirmTimeoutHours} 小时内没有被确认，请手动校验发送结果`)
