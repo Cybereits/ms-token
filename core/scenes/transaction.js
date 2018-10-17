@@ -126,7 +126,7 @@ export async function syncTransactionState() {
             if (txReceipt.status === '0x0') {
               // 发送失败
               failTransaction(transaction, '交易失败，请到 etherscan.io 手动查询出错原因').then(resolve).catch(reject)
-            } else if (txReceipt.status === '0x1') {
+            } else if (txReceipt.status === true || txReceipt.status === '0x1') {
               // 确认成功
               confirmTransaction(transaction).then(resolve).catch(reject)
             } else {
