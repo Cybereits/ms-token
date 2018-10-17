@@ -105,6 +105,8 @@ export async function syncTransactionState() {
     status: { $in: [STATUS.sending, STATUS.error] },
   }).catch((ex) => { console.error(`交易状态同步失败 ${ex}`) })
 
+  console.log(`将 ${sendingTxs.length} 比交易信息添加到同步队列`)
+
   if (sendingTxs.length > 0) {
     // 创建任务队列
     let queue = new ParallelQueue({
@@ -118,8 +120,10 @@ export async function syncTransactionState() {
         let { txid } = transaction
         if (txid) {
           let conn = getConnection()
+          console.log(`同步 [${txid}] 的状态`)
           let txReceipt = await conn.eth.getTransactionReceipt(txid).catch(() => false)
           if (txReceipt && txReceipt.blockNumber && txReceipt.blockNumber < blockHeightLimitation) {
+            console.log(`[${txid}] 查询到交易详情 block: [${txReceipt.blockNumber}] status: [${txReceipt.status}]`)
             if (txReceipt.status === '0x0') {
               // 发送失败
               failTransaction(transaction, '交易失败，请到 etherscan.io 手动查询出错原因').then(resolve).catch(reject)
