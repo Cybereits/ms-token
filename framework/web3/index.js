@@ -65,8 +65,11 @@ ec_pool = clients.map(clientUri => new EstablishedConnection(clientUri))
 function clientSyncStateCheck() {
   ec_pool.forEach(async (ec) => {
     let conn = ec.conn
-    let clientBlockNumber = await conn.eth.getBlockNumber()
-    if (clientBlockNumber < curr_block_number - BLOCK_SYNC_DELAY_TOLERATION) {
+    let clientBlockNumber = await conn.eth.getBlockNumber().catch(ex => false)
+    if (clientBlockNumber === false) {
+      // 此时的客户端链接应该是已经断开的状态 所以不需要再做额外的处理
+      return false
+    } else if (clientBlockNumber < curr_block_number - BLOCK_SYNC_DELAY_TOLERATION) {
       if (ec.usable()) {
         ec.disable(`${conn.__uri} 客户端区块同步高度为 ${clientBlockNumber} 落后于当前链上区块高度 ${curr_block_number}`)
       }
