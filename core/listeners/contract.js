@@ -6,6 +6,7 @@ export default function establishContractListener(contractName) {
   createContractEventListener(contractName)
     .on('Transfer', async ({ returnValues }) => {
       let { from, to } = returnValues
+      console.info(`[Transfer Event] - [${contractName}] from ${from} to ${to}`)
       checkIsSysThenUpdate(from) // 因为要花费油费 所以检查更新发送方的以太账户
       checkIsSysThenUpdate(from, contractName)
       checkIsSysThenUpdate(to, contractName)
