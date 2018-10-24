@@ -168,6 +168,9 @@ export async function syncAllSysAccounts() {
 
 export async function handlePendingBalanceUpdateJobs() {
   let pendingJobs = await getAllAccountSyncInfo()
+
+  console.log(`处理堆积的账户更新操作，共 ${pendingJobs.length} 条`)
+
   if (pendingJobs && pendingJobs.length > 0) {
     let queue = new ParallelQueue({
       limit: 30,
