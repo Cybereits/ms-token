@@ -6,7 +6,6 @@ export default function establishEthListener() {
   // eth 转账事件监听
   createEthEventListener()
     .on('Transaction', ({ from, to }) => {
-      console.info(`[Transfer Event] - [Ether] from ${from} to ${to}`)
       checkIsSysThenUpdate(from)
       checkIsSysThenUpdate(to)
     })
