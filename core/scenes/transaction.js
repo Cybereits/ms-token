@@ -69,7 +69,6 @@ export function failTransaction(transaction, msg) {
   removeTrackedTransaction(transaction.txid)
   transaction.status = STATUS.failure
   transaction.exceptionMsg = msg
-  transaction.txid = null
   console.log(`${transaction.from} to ${transaction.to} tx failed: ${msg}`)
   return transaction.save()
 }

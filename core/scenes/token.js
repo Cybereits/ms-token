@@ -40,15 +40,13 @@ function onConfirmationWithEvent(promEvent) {
       console.log(`txid ${transactionHash} was confirmed by ${confirmationNumber + 1} blocks, status: ${status}`)
     }
 
-    if (confirmationNumber >= confirmBlockLimitation) {
-      if (!status) {
-        // 执行失败
-        rejectTx(transactionHash)
-        releasePromEvent(promEvent)
-      } else {
-        confirmTx(transactionHash)
-        releasePromEvent(promEvent)
-      }
+    if (!status) {
+      // 执行失败
+      rejectTx(transactionHash)
+      releasePromEvent(promEvent)
+    } else if (confirmationNumber >= confirmBlockLimitation) {
+      confirmTx(transactionHash)
+      releasePromEvent(promEvent)
     }
     // else: still waiting for confirmation...
   }
