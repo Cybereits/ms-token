@@ -99,11 +99,9 @@ function getConnection(uri) {
     // 查找当前链接池中是否有对应的钱包链接
     if (_matched) {
       // 如果有则返回对应链接
-      console.log(`使用链接池中的链接 [${uri}]`)
       return _matched.getConn()
     } else {
       // 如果没有 则新建链接
-      console.log(`新建临时链接 [${uri}]`)
       return new EstablishedConnection(uri).getConn()
     }
   } else {

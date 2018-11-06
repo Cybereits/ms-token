@@ -1,5 +1,5 @@
 import { getListener } from '../scenes/listener'
-import { addTrackedTransaction, removeTrackedTransaction } from '../redis/transaction'
+import { addTrackedTransaction } from '../redis/transaction'
 import { confirmTransactionByTxid, failedTransactionByTxid } from '../scenes/transaction'
 
 const LISTENER_NAME = '__transaction_listener'
@@ -21,13 +21,11 @@ export default function establishTransactionListener() {
   })
 
   txListener.on(EVENTS.confirm, (txid) => {
-    removeTrackedTransaction(txid)
     confirmTransactionByTxid(txid)
     console.log(`[transaction confirmed]: ${txid}`)
   })
 
   txListener.on(EVENTS.failed, ([txid, msg]) => {
-    removeTrackedTransaction(txid)
     failedTransactionByTxid(txid, msg || '交易失败，请到 etherscan.io 手动查询出错原因')
     console.log(`[transaction failed]: ${txid}`)
   })

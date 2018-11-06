@@ -18,13 +18,9 @@ function releasePromEvent(promEvent) {
 
 function onConfirmationWithEvent(promEvent) {
   return async (confirmationNumber, receipt) => {
-    let { transactionHash, status, gasUsed } = receipt
-    let { gas } = await getConnection().eth.getTransaction(transactionHash)
-    if (gasUsed > gas) {
-      // 油费不足
-      publishFailedInfo(transactionHash, '油费不足，交易执行失败')
-      releasePromEvent(promEvent)
-    } else if (confirmationNumber >= confirmBlockLimitation) {
+    let { transactionHash, status } = receipt
+    console.log(`txid ${transactionHash} was confirmed by ${confirmationNumber} blocks, status: ${status}`)
+    if (confirmationNumber >= confirmBlockLimitation) {
       if (status === '0x0') {
         // 执行失败
         publishFailedInfo(transactionHash, '执行失败')
