@@ -1,12 +1,28 @@
 import BN from 'bignumber.js'
 
 import getConnection from '../../framework/web3'
+import { addTrackedTransaction } from '../redis/transaction'
 import { getConnByAddressThenUnlock } from './account'
 import { getContractInstance } from './contract'
+import { confirmTransactionByTxid, failedTransactionByTxid } from './transaction'
 import { TOKEN_TYPES, CONTRACT_NAMES, STATUS } from '../enums'
 import { ContractMetaModel, TxRecordModel } from '../schemas'
-import { publishTransaction, publishConfirmInfo, publishFailedInfo } from '../listeners/transaction'
 import { confirmBlockLimitation } from '../../config/env.json'
+
+function confirmTx(txid) {
+  confirmTransactionByTxid(txid)
+  console.log(`[transaction confirmed]: ${txid}`)
+}
+
+function sendTx(txid) {
+  addTrackedTransaction(txid)
+  console.log(`[transaction sent]: ${txid}`)
+}
+
+function rejectTx(txid, msg) {
+  failedTransactionByTxid(txid, msg || '交易失败，请到 etherscan.io 手动查询出错原因')
+  console.log(`[transaction failed]: ${txid}`)
+}
 
 function releasePromEvent(promEvent) {
   if (promEvent) {
@@ -27,10 +43,10 @@ function onConfirmationWithEvent(promEvent) {
     if (confirmationNumber >= confirmBlockLimitation) {
       if (!status) {
         // 执行失败
-        publishFailedInfo(transactionHash, '执行失败')
+        rejectTx(transactionHash)
         releasePromEvent(promEvent)
       } else {
-        publishConfirmInfo(transactionHash)
+        confirmTx(transactionHash)
         releasePromEvent(promEvent)
       }
     }
@@ -96,7 +112,7 @@ export async function sendToken(fromAddress, toAddress, amount, options = {}) {
 
     promEvent
       .on('transactionHash', (txid) => {
-        publishTransaction(txid)
+        sendTx(txid)
         resolve(txid)
       })
       .on('confirmation', onConfirmationWithEvent(promEvent))
@@ -130,7 +146,7 @@ export async function sendETH(fromAddress, toAddress, amount, options = {}) {
 
     promEvent
       .on('transactionHash', (txid) => {
-        publishTransaction(txid)
+        sendTx(txid)
         resolve(txid)
       })
       .on('confirmation', onConfirmationWithEvent(promEvent))
