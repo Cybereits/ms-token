@@ -8,8 +8,6 @@ import { ContractMetaModel, TxRecordModel } from '../schemas'
 import { publishTransaction, publishConfirmInfo, publishFailedInfo } from '../listeners/transaction'
 import { confirmBlockLimitation } from '../../config/env.json'
 
-BN.config({ DECIMAL_PLACES: 20 })
-
 function releasePromEvent(promEvent) {
   if (promEvent) {
     promEvent.off('confirmation')

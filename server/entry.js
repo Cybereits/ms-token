@@ -11,6 +11,8 @@ require('babel-register')({
   ],
 })
 
+require('bignumber.js').BigNumber.config({ DECIMAL_PLACES: 20 })
+
 // 开启 web 服务
 require('./app')
 // 开启合约监听

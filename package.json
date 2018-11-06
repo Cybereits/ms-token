@@ -5,6 +5,8 @@
     "start": "pm2 start config/pm2.json",
     "lint": "bash ./eslint.sh",
     "task": "node ./tasks",
+    "sync-tx": "node ./tasks syncAllTransactions",
+    "sync-accounts": "node ./tasks syncAllAccounts",
     "test": "./node_modules/.bin/mocha -t 20s test/**/*.spec.js",
     "dev-geth": "mkdir -p geth-node & bash geth.dev.sh"
   },
