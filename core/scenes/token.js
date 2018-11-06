@@ -19,9 +19,13 @@ function releasePromEvent(promEvent) {
 function onConfirmationWithEvent(promEvent) {
   return async (confirmationNumber, receipt) => {
     let { transactionHash, status } = receipt
-    console.log(`txid ${transactionHash} was confirmed by ${confirmationNumber} blocks, status: ${status}`)
+
+    if (confirmationNumber % 4 === 0) {
+      console.log(`txid ${transactionHash} was confirmed by ${confirmationNumber + 1} blocks, status: ${status}`)
+    }
+
     if (confirmationNumber >= confirmBlockLimitation) {
-      if (status === '0x0') {
+      if (!status) {
         // 执行失败
         publishFailedInfo(transactionHash, '执行失败')
         releasePromEvent(promEvent)

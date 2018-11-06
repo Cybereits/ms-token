@@ -121,12 +121,12 @@ export async function syncTransactionState() {
           let conn = getConnection()
           console.log(`同步 [${txid}] 的状态`)
           let txReceipt = await conn.eth.getTransactionReceipt(txid).catch(() => false)
-          if (txReceipt && txReceipt.blockNumber && txReceipt.blockNumber < blockHeightLimitation) {
+          if (txReceipt && txReceipt.blockNumber && txReceipt.blockNumber <= blockHeightLimitation) {
             console.log(`[${txid}] 查询到交易详情 block: [${txReceipt.blockNumber}] status: [${txReceipt.status}]`)
-            if (txReceipt.status === '0x0') {
+            if (!txReceipt.status) {
               // 发送失败
               failTransaction(transaction, '交易失败，请到 etherscan.io 手动查询出错原因').then(resolve).catch(reject)
-            } else if (txReceipt.status === true || txReceipt.status === '0x1') {
+            } else if (txReceipt.status) {
               // 确认成功
               confirmTransaction(transaction).then(resolve).catch(reject)
             } else {
