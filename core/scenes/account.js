@@ -103,15 +103,15 @@ export async function doUpdateBalanceOfAccount(address, name) {
 
   let account = await EthAccountModel.findOne({ account: address })
 
-  console.log(`[update account balance]: ${address} [${amount}] [${name}]`)
-
   if (!account.balances) {
     account.balances = {}
   }
 
   account.balances[symbol] = +amount
 
-  return EthAccountModel.update({ account: address }, account)
+  console.log(`[update account balance]: ${address} [${amount}] [${name}]`)
+
+  return account.save().catch(ex => console.error(ex))
 }
 
 /**
@@ -134,15 +134,17 @@ export async function checkIsSysThenUpdate(address, contractName) {
  * @param {String} tokenContractNames 代币合约名称
  */
 export async function updateAllAccountsForContract(tokenContractNames) {
-  const taskQueue = new ParallelQueue({ limit: 20, span: 500 })
+  const taskQueue = new ParallelQueue({ limit: 20, span: 500, toleration: 0 })
 
   let accounts = await getAllAccounts()
 
   accounts.forEach((address) => {
     taskQueue.add(new TaskCapsule(() => sayIWannaUpdateTheBalanceOfSomeAccount(address, 'eth', true)))
-    tokenContractNames.forEach((contractName) => {
-      taskQueue.add(new TaskCapsule(() => sayIWannaUpdateTheBalanceOfSomeAccount(address, contractName, true)))
-    })
+    if (tokenContractNames && tokenContractNames.length > 0) {
+      tokenContractNames.forEach((contractName) => {
+        taskQueue.add(new TaskCapsule(() => sayIWannaUpdateTheBalanceOfSomeAccount(address, contractName, true)))
+      })
+    }
   })
 
   return taskQueue.consume()
