@@ -7,28 +7,24 @@ import env from '../../config/env.json'
 async function getGethClientState(uri) {
   let conn = getConnection(uri)
   if (!conn) {
-    return { uri }
+    return { uri, enable: false }
   }
   let account = await conn.eth.getCoinbase().catch(ex => null)
   if (!account) {
-    return { uri }
+    return { uri, enable: false }
   }
   let currentBlockHeightPromise = conn.eth.getBlockNumber()
   let gasPricePromise = conn.eth.getGasPrice().then(p => new BigNumber(conn.eth.extend.utils.fromWei(p)))
-  let gasFeePromise = conn.eth.estimateGas({ from: account }).then(f => new BigNumber(f))
   // 当前区块高度
   let currentBlockHeight = await currentBlockHeightPromise
   // 当前油价
   let gasPrice = await gasPricePromise
-  // 当前转账手续费
-  let gasFee = await gasFeePromise
 
   return {
     uri,
+    enable: true,
     currentBlockHeight,
     gasPrice: gasPrice.toString(10),
-    gasFee: gasFee.toString(10),
-    gasCost: gasFee.mul(gasPrice).toString(10),
   }
 }
 
