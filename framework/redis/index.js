@@ -5,9 +5,7 @@ import env from '../../config/env.json'
 
 const { host, port } = env.redis
 
-let client = redis.createClient({
-  host,
-  port,
+let client = redis.createClient(port, host, {
   password: env.redis.pwd,
   db: env.redis.database,
 })

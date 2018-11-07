@@ -396,7 +396,7 @@ export const readContractMethod = {
     methodName,
     paramArrInJson,
   }) {
-    console.log(caller)
+
     if (!caller) {
       // 因为是 query，不会产生写入费用，所以即便不指定钱包地址，会使用第一个钱包去调用
       caller = await EthAccountModel.findOne({}, { account: 1 })
