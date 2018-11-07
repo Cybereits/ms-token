@@ -1,10 +1,9 @@
-// web3 need ^1.0.0-beta.24
 import Web3 from 'web3'
 import { clients } from '../../config/env.json'
 
-const RECONNECT_DELAY = 2
-const STATE_CHECK_INTERVAL = 5
-const BLOCK_SYNC_DELAY_TOLERATION = 1000
+const RECONNECT_DELAY = 8
+const STATE_CHECK_INTERVAL = 15
+const BLOCK_SYNC_DELAY_TOLERATION = 2000
 
 let ec_pool = []
 let curr_index = 0
@@ -53,7 +52,7 @@ class EstablishedConnection {
 
   getConn() {
     if (this.isDisabled) {
-      console.error(this.disable_reason)
+      console.warn(`调用失败：${this.disable_reason}`)
       return null
     } else {
       return this.conn

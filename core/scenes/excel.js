@@ -27,5 +27,5 @@ export function exportToCsv(collection_name, fields, filename) {
 }
 
 export function exportAccountInfo() {
-  return exportToCsv('ethaccounts', ['account', 'balances.eth', 'balances.cre', 'comment'], '账户信息')
+  return exportToCsv('ethaccounts', ['account', 'balances.eth', 'balances.cre', 'comment'], 'account_info')
 }
