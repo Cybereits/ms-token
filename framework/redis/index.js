@@ -3,14 +3,17 @@ import redisWrapper from 'redis-conn-wrapper'
 
 import env from '../../config/env.json'
 
-const { ip, port } = env.redis
+const { host, port } = env.redis
 
-let client = redis.createClient(port, ip, {
+let client = redis.createClient({
+  host,
+  port,
   password: env.redis.pwd,
   db: env.redis.database,
 })
+
 let wrapper = redisWrapper(redis, {
-  host: ip,
+  host,
   port,
   password: env.redis.pwd,
   db: env.redis.database,

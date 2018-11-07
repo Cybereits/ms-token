@@ -109,9 +109,14 @@ export async function doUpdateBalanceOfAccount(address, name) {
 
   account.balances[symbol] = +amount
 
-  console.log(`[update account balance]: ${address} [${amount}] [${name}]`)
+  delete account._id
+  console.log(account)
 
-  return account.save().catch(ex => console.error(ex))
+  return EthAccountModel.update({ account: address }, account)
+    // account
+    //   .save()
+    .then(() => console.log(`[update account balance]: ${address} [${amount}] [${name}]`))
+    .catch(ex => console.error(ex))
 }
 
 /**
