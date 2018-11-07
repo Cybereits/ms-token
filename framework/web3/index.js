@@ -39,21 +39,22 @@ class EstablishedConnection {
   enable() {
     this.isDisabled = false
     this.disable_reason = null
-    console.log(`重新启用客户端 [${this.__uri}]`)
+    console.log(`启用客户端 [${this.__uri}]`)
   }
 
   onClonse() {
-    console.warn(`[${this.__uri}] 钱包客户端连接失败，${RECONNECT_DELAY} 秒后尝试重连...`)
+    this.disable(`[${this.__uri}] 钱包客户端连接失败，${RECONNECT_DELAY} 秒后尝试重连...`)
     setTimeout(this.buildConn.bind(this), RECONNECT_DELAY * 1000)
   }
 
   onConnected() {
-    console.info(`[${this.__uri}] 钱包客户端连接成功!`)
+    this.enable()
   }
 
   getConn() {
     if (this.isDisabled) {
-      throw new Error(this.disable_reason)
+      console.error(this.disable_reason)
+      return null
     } else {
       return this.conn
     }

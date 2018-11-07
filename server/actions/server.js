@@ -6,6 +6,9 @@ import env from '../../config/env.json'
 
 async function getGethClientState(uri) {
   let conn = getConnection(uri)
+  if (!conn) {
+    return { uri }
+  }
   let account = await conn.eth.getCoinbase().catch(ex => null)
   if (!account) {
     return { uri }
