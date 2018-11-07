@@ -110,11 +110,8 @@ export async function doUpdateBalanceOfAccount(address, name) {
   account.balances[symbol] = +amount
 
   delete account._id
-  console.log(account)
 
   return EthAccountModel.update({ account: address }, account)
-    // account
-    //   .save()
     .then(() => console.log(`[update account balance]: ${address} [${amount}] [${name}]`))
     .catch(ex => console.error(ex))
 }
@@ -176,9 +173,8 @@ export async function syncAllSysAccounts() {
 export async function handlePendingBalanceUpdateJobs() {
   let pendingJobs = await getAllAccountSyncInfo()
 
-  console.log(`处理堆积的账户更新操作，共 ${pendingJobs.length} 条`)
-
   if (pendingJobs && pendingJobs.length > 0) {
+    console.log(`处理堆积的账户更新操作，共 ${pendingJobs.length} 条`)
     let queue = new ParallelQueue({
       limit: 30,
       toleration: 0,
