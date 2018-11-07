@@ -24,3 +24,6 @@ static/
 
 # test file
 test.js
+
+# dev config file
+config/env.json
