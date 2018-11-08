@@ -18,8 +18,10 @@ export function lockAccount(connect, lockAccount) {
  * 获取所有客户端下创建的钱包地址
  * @returns {Array<string>} 所有的钱包地址
  */
-export async function getAllAccounts() {
-  return EthAccountModel.find(null, { account: 1 }).then(t => t.map(({ account }) => account))
+export function getAllAccounts() {
+  return EthAccountModel
+    .find(null, { account: 1 })
+    .then(t => t.map(({ account }) => account))
 }
 
 /**

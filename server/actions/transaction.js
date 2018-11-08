@@ -12,7 +12,7 @@ import { BatchTransactinTaskModel, TxRecordModel } from '../../core/schemas'
 import { batchTransactionTask, txRecord, txFilter, transactionArgs } from '../types/plainTypes'
 import { PaginationResult, PaginationWrapper } from '../types/complexTypes'
 import { sendETH, sendToken } from '../../core/scenes/token'
-import { sendingTransaction, failTransaction, editTransaction as editTx, deleteTransaction } from '../../core/scenes/transaction'
+import { sendingTransaction, failTransaction, editTransaction as editTx, deleteTransaction, deleteBatchTransactions } from '../../core/scenes/transaction'
 
 /**
  * 批量发送交易
@@ -210,6 +210,35 @@ export const createBatchTransactions = {
   },
 }
 
+export const removeBatchTransactions = {
+  type: str,
+  description: '批量删除转账任务',
+  args: {
+    taskId: {
+      type: new NotNull(str),
+      description: '任务ID',
+    },
+  },
+  async resolve(_, { taskId }) {
+    // 先创建批量任务的实体
+    let task = await BatchTransactinTaskModel.findOne({
+      _id: taskId,
+    })
+
+    if (task === null) {
+      throw new Error('没有找到对应的任务')
+    }
+
+    // 创建转账的交易实体
+    let txs = await TxRecordModel.find({
+      taskid: taskId,
+      status: STATUS.pending,
+    })
+
+    return deleteBatchTransactions(txs, taskId).then(() => 'sucess')
+  },
+}
+
 export const queryTx = {
   type: PaginationWrapper(txRecord),
   description: '查询交易信息',
@@ -227,7 +256,7 @@ export const queryTx = {
       description: '过滤条件',
     },
   },
-  async resolve(root, { pageIndex = 0, pageSize = 10, filter }) {
+  async resolve(_, { pageIndex = 0, pageSize = 10, filter }) {
     let result = null
     let total = 0
 
@@ -255,11 +284,8 @@ export const sendTransaction = {
       description: '指定批量任务的 id',
     },
   },
-  async resolve(root, { ids, taskid }, { session }) {
+  async resolve(_, { ids, taskid }, { session }) {
     let { admin } = session
-    if (!admin || admin.role !== 1) {
-      return new Error('您没有发送交易的权限')
-    }
     if (ids && ids.length > 0) {
       sendBatchTxs(ids, admin.username)
       return 'success'

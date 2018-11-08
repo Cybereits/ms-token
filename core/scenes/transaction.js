@@ -40,6 +40,32 @@ export async function deleteTransaction(transaction) {
   }
 }
 
+export async function deleteBatchTransactions(txs, taskid) {
+  let promises = []
+  if (txs && txs.length > 0) {
+    txs.forEach((transaction) => {
+      if (transaction.status === STATUS.pending) {
+        promises.push(transaction.remove())
+      }
+    })
+  }
+  if (promises.length > 0) {
+    await Promise.all(promises)
+  }
+
+  if (taskid) {
+    let task = await BatchTransactinTaskModel.findOne({ _id: taskid })
+    task.count = await TxRecordModel.count({ taskid })
+    if (task.count === 0) {
+      return task.remove()
+    } else {
+      return task.save()
+    }
+  }
+
+  return true
+}
+
 export function sendingTransaction(transaction, txid, username) {
   transaction.status = STATUS.sending
   transaction.txid = txid

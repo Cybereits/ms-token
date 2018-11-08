@@ -4,7 +4,8 @@
  */
 import { tempConnection } from '../../framework/redis'
 
-const CACHE_PREFIX = 'ms_token_redis_cache'
+const CACHE_PREFIX = 'ms_token_redis_cache_'
+const ETERNAL_CACHE_TABLE = 'ms_token_eternal_cache_table'
 const CACHE_EXPIRED_TIME_IN_SEC = 60 * 60 * 24  // 一天过期时间
 
 function serialize(data) {
@@ -38,4 +39,20 @@ export function getCacheValue(key) {
         return null
       }
     })
+}
+
+/**
+ * 添加字符串永久缓存
+ * @param {String} values 缓存的字符串
+ */
+export function saveEternalStringCache(...values) {
+  return tempConnection.sadd(ETERNAL_CACHE_TABLE, ...values)
+}
+
+/**
+ * 检查缓存的字符串是否存在
+ * @param {String} value 缓存的字符串
+ */
+export function existEternalString(value) {
+  return tempConnection.sismember(ETERNAL_CACHE_TABLE, value)
 }

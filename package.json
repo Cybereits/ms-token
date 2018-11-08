@@ -1,6 +1,14 @@
 {
   "name": "ms-token",
   "version": "0.1.0",
+  "author": {
+    "name": "marsoln",
+    "email": "marsoln1988@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:Cybereits/ms-token"
+  },
   "scripts": {
     "start": "pm2 start config/pm2.json",
     "lint": "bash ./eslint.sh",
@@ -32,6 +40,8 @@
     "redis": "^2.8.0",
     "redis-conn-wrapper": "^1.1.0",
     "request": "^2.88.0",
+    "socket.io": "^2.1.1",
+    "socket.io-redis": "^5.2.0",
     "solc": "^0.4.24",
     "speakeasy": "^2.0.0",
     "web3": "^1.0.0-beta.36"
@@ -49,5 +59,6 @@
     "eslint-plugin-react": "^7.11.1",
     "eslint-plugin-standard": "^2.0.1",
     "mocha": "^5.1.1"
-  }
+  },
+  "license": "MIT"
 }

@@ -8,7 +8,7 @@ import { authLevelWrapper, sessionValidWrapper } from './common/auth'
 
 import { exportAccountBalanceData } from './actions/excel'
 
-import { createAdmin, adminLogin, adminLogout, changePwd, resetPwd, queryAdminList, getTwoFactorAuthUrl, bindTwoFactorAuth, getAdminInfo } from './actions/admin'
+import { createAdmin, removeAdmin, adminLogin, adminLogout, changePwd, resetPwd, queryAdminList, getTwoFactorAuthUrl, bindTwoFactorAuth, getAdminInfo } from './actions/admin'
 
 import { queryAllBalance, gatherAllTokens, tokenBalanceOverview } from './actions/balance'
 
@@ -18,7 +18,7 @@ import { statusEnum, tokenTypeEnum, userRoleEnum } from './actions/enum'
 
 import { createAccount, createMultiAccount, queryAccountList, queryIsSysAccount } from './actions/account'
 
-import { queryBatchTransactionTasks, queryTxRecordsViaTaskId, queryTx, createTransaction, createBatchTransactions, sendTransaction, editTransaction, removeTransaction } from './actions/transaction'
+import { queryBatchTransactionTasks, queryTxRecordsViaTaskId, queryTx, createTransaction, createBatchTransactions, removeBatchTransactions, sendTransaction, editTransaction, removeTransaction } from './actions/transaction'
 
 import { serverStates } from './actions/server'
 
@@ -53,11 +53,13 @@ const MutationApis = new Obj({
   fields: {
     changePwd: sessionValidWrapper(changePwd),
     createAdmin: authLevelWrapper([USER_ROLE_LEVELS.super_admin], createAdmin),
+    removeAdmin: authLevelWrapper([USER_ROLE_LEVELS.super_admin], removeAdmin),
     addERC20ContractMeta: authLevelWrapper([USER_ROLE_LEVELS.super_admin], addERC20ContractMeta),
     createAccount: sessionValidWrapper(createAccount),
     createMultiAccount: sessionValidWrapper(createMultiAccount),
     createTransaction: sessionValidWrapper(createTransaction),
     createBatchTransactions: sessionValidWrapper(createBatchTransactions),
+    removeBatchTransactions: authLevelWrapper([USER_ROLE_LEVELS.super_admin], removeBatchTransactions),
     deployCREContract: authLevelWrapper([USER_ROLE_LEVELS.super_admin], deployCREContract),
     deployKycContract: authLevelWrapper([USER_ROLE_LEVELS.super_admin], deployKycContract),
     deployAssetContract: authLevelWrapper([USER_ROLE_LEVELS.super_admin], deployAssetContract),

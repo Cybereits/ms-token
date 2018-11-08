@@ -34,6 +34,15 @@ async function register(username, password, validPassword, role) {
   }
 }
 
+async function deleteUser(username) {
+  let admin = await AdminModel.findOne({ username })
+  if (admin && admin.role !== 1) {
+    return admin.remove()
+  } else {
+    throw new Error('没有找到对应的管理员')
+  }
+}
+
 async function login(username, password, token, ctx) {
   if (ctx.session && ctx.session.admin) {
     let { username, role } = ctx.session.admin
@@ -81,6 +90,7 @@ export const createAdmin = {
   args: {
     username: {
       type: new NotNull(str),
+      description: '管理员名称',
     },
     password: {
       type: new NotNull(str),
@@ -96,6 +106,20 @@ export const createAdmin = {
     } else {
       return register(username, password, validPassword, 2)
     }
+  },
+}
+
+export const removeAdmin = {
+  type: str,
+  description: '删除已有管理员',
+  args: {
+    username: {
+      type: new NotNull(str),
+      description: '管理员名称',
+    },
+  },
+  resolve(_, { username }) {
+    return deleteUser(username).then(() => 'success')
   },
 }
 
