@@ -1,4 +1,6 @@
 import Web3 from 'web3'
+import { BigNumber } from 'bignumber.js'
+
 import { clients } from '../../config/env.json'
 import { broadcast, EVENT_TYPES } from '../eventsPublisher'
 import ohDamnItThatIsSoStupid from '../listeners'
@@ -42,7 +44,7 @@ class EstablishedConnection {
   enable() {
     this.isDisabled = false
     this.disable_reason = null
-    broadcast(EVENT_TYPES.clientEnable, this.conn.__uri)
+    broadcast(EVENT_TYPES.serverState, getGethClientState(this.conn.__uri))
   }
 
   onClosed() {
@@ -84,7 +86,7 @@ function clientSyncStateCheck() {
       if (ec.usable()) {
         let reason = `${conn.__uri} 客户端区块同步高度为 ${clientBlockNumber} 落后于当前链上区块高度 ${curr_block_number}`
         ec.disable(reason)
-        broadcast(EVENT_TYPES.clientError, [conn.__uri, reason])
+        broadcast(EVENT_TYPES.serverState, getGethClientState(this.conn.__uri))
       }
     } else {
       if (clientBlockNumber > curr_block_number) {
@@ -132,6 +134,30 @@ function getConnection(uri) {
     } else {
       throw new Error('没有可用的钱包链接...')
     }
+  }
+}
+
+export async function getGethClientState(uri) {
+  let conn = getConnection(uri)
+  if (!conn) {
+    return { uri, enable: false }
+  }
+  let account = await conn.eth.getCoinbase().catch(ex => null)
+  if (!account) {
+    return { uri, enable: false }
+  }
+  let currentBlockHeightPromise = conn.eth.getBlockNumber()
+  let gasPricePromise = conn.eth.getGasPrice().then(p => new BigNumber(conn.eth.extend.utils.fromWei(p)))
+  // 当前区块高度
+  let currentBlockHeight = await currentBlockHeightPromise
+  // 当前油价
+  let gasPrice = await gasPricePromise
+
+  return {
+    uri,
+    enable: true,
+    currentBlockHeight,
+    gasPrice: gasPrice.toString(10),
   }
 }
 

@@ -10,7 +10,7 @@ import { exportAccountBalanceData } from './actions/excel'
 
 import { createAdmin, removeAdmin, adminLogin, adminLogout, changePwd, resetPwd, queryAdminList, getTwoFactorAuthUrl, bindTwoFactorAuth, getAdminInfo } from './actions/admin'
 
-import { queryAllBalance, gatherAllTokens, tokenBalanceOverview } from './actions/balance'
+import { queryAllBalance, gatherAllTokens } from './actions/balance'
 
 import { queryCREContractAbi, deployCREContract, deployKycContract, deployAssetContract, addERC20ContractMeta, queryAllContract, readContractMethod, writeContractMethod } from './actions/contract'
 
@@ -19,8 +19,6 @@ import { statusEnum, tokenTypeEnum, userRoleEnum } from './actions/enum'
 import { createAccount, createMultiAccount, queryAccountList, queryIsSysAccount } from './actions/account'
 
 import { queryBatchTransactionTasks, queryTxRecordsViaTaskId, queryTx, createTransaction, createBatchTransactions, removeBatchTransactions, sendTransaction, editTransaction, removeTransaction } from './actions/transaction'
-
-import { serverStates } from './actions/server'
 
 const QueryApis = new Obj({
   name: 'QueryApis',
@@ -37,10 +35,8 @@ const QueryApis = new Obj({
     queryTx: sessionValidWrapper(queryTx),
     queryTxRecordsViaTaskId: sessionValidWrapper(queryTxRecordsViaTaskId),
     queryIsSysAccount: sessionValidWrapper(queryIsSysAccount),
-    queryServerStates: sessionValidWrapper(serverStates),
     getAdminInfo: sessionValidWrapper(getAdminInfo),
     getTwoFactorAuthUrl: sessionValidWrapper(getTwoFactorAuthUrl),
-    tokenBalanceOverview: sessionValidWrapper(tokenBalanceOverview),
     statusEnum: sessionValidWrapper(statusEnum),
     tokenTypeEnum: sessionValidWrapper(tokenTypeEnum),
     userRoleEnum: sessionValidWrapper(userRoleEnum),

@@ -65,26 +65,6 @@ export const queryAllBalance = {
   },
 }
 
-export const tokenBalanceOverview = {
-  type: new List(hashResult),
-  description: '获取代币余额总览',
-  async resolve() {
-    let accounts = await EthAccountModel.find(null, { balances: 1 })
-    let counter = {}
-    accounts.forEach(({ balances }) => {
-      if (balances) {
-        Object.entries(balances).forEach(([tokenType, amount]) => {
-          if (counter[tokenType] === undefined) {
-            counter[tokenType] = 0
-          }
-          counter[tokenType] += amount
-        })
-      }
-    })
-    return Object.entries(counter).map(([name, amount]) => ({ name, value: (Math.round(amount * 100) / 100).toFixed(2) }))
-  },
-}
-
 export const gatherAllTokens = {
   type: str,
   description: '归集所有的代币',

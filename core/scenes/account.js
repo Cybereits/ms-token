@@ -174,6 +174,9 @@ export async function syncAllSysAccounts() {
     })
 }
 
+/**
+ * 获取代币余额总览
+ */
 export async function getTokenBalanceOverview() {
   let accounts = await EthAccountModel.find(null, { balances: 1 })
   let counter = {}
