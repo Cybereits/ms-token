@@ -3,9 +3,10 @@ import { TaskCapsule, ParallelQueue } from 'async-task-manager'
 import { EthAccountModel } from '../schemas'
 import { addAccountSyncInfo, removeAccountSyncInfo, getAllAccountSyncInfo } from '../redis/queue'
 import { existEternalString } from '../redis/cache'
+import { broadcast, EVENT_TYPES } from '../eventsPublisher'
+import getConnection from '../web3'
 import { getEthBalance, getTokenBalance } from './token'
 import { getTokenContractMeta, getAllTokenContracts } from './contract'
-import getConnection from '../../framework/web3'
 
 export function unlockAccount(connect, unlockAccount, passWord) {
   return connect.eth.personal.unlockAccount(unlockAccount, passWord, 20)
@@ -49,7 +50,6 @@ export async function getAccountInfoByAddress(address) {
  * @returns {object} 钱包客户端链接
  */
 export async function getConnByAddressThenUnlock(address) {
-
   // 获取出账钱包信息
   let { account, group, secret } = await getAccountInfoByAddress(address)
   let conn = getConnection(group)
@@ -99,8 +99,8 @@ export async function doUpdateBalanceOfAccount(address, name) {
     symbol = name
     amount = await getEthBalance(address)
   } else {
-    amount = await getTokenBalance(address, name)
-    let contractMeta = await getTokenContractMeta(name)
+    amount = await getTokenBalance(address, name).catch(ex => console.error(ex))
+    let contractMeta = await getTokenContractMeta(name).catch(ex => console.error(ex))
     symbol = contractMeta.symbol
   }
 
@@ -128,6 +128,7 @@ export async function doUpdateBalanceOfAccount(address, name) {
 export async function checkIsSysThenUpdate(address, contractName) {
   let result = await isSysAccount(address)
   if (result) {
+    broadcast(EVENT_TYPES.txDetected, address)
     return sayIWannaUpdateTheBalanceOfSomeAccount(address, contractName)
   } else {
     return false
@@ -173,6 +174,22 @@ export async function syncAllSysAccounts() {
     })
 }
 
+export async function getTokenBalanceOverview() {
+  let accounts = await EthAccountModel.find(null, { balances: 1 })
+  let counter = {}
+  accounts.forEach(({ balances }) => {
+    if (balances) {
+      Object.entries(balances).forEach(([tokenType, amount]) => {
+        if (counter[tokenType] === undefined) {
+          counter[tokenType] = 0
+        }
+        counter[tokenType] += amount
+      })
+    }
+  })
+  return Object.entries(counter).map(([name, amount]) => ({ name, value: (Math.round(amount * 100) / 100).toFixed(2) }))
+}
+
 export async function handlePendingBalanceUpdateJobs() {
   let pendingJobs = await getAllAccountSyncInfo()
 
@@ -191,8 +208,13 @@ export async function handlePendingBalanceUpdateJobs() {
       )
     )
 
-    return queue.consume()
+    return queue.consume().then(broadcastBalanceUpdateEvent)
   } else {
     return false
   }
+}
+
+export async function broadcastBalanceUpdateEvent() {
+  const balances = await getTokenBalanceOverview()
+  broadcast(EVENT_TYPES.balanceUpdated, balances)
 }

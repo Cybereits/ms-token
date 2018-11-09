@@ -1,10 +1,11 @@
 import { TaskCapsule, ParallelQueue } from 'async-task-manager'
 
-import getConnection from '../../framework/web3'
+import getConnection from '../web3'
 import { TxRecordModel, BatchTransactinTaskModel } from '../schemas'
 import { STATUS } from '../enums'
 import { removeTrackedTransaction } from '../redis/transaction'
 import { confirmBlockLimitation, confirmTimeoutHours } from '../../config/env.json'
+import { broadcast, EVENT_TYPES } from '../eventsPublisher'
 
 export function editTransaction(transaction, from, to, amount, creator) {
   // 只有交易状态是待处理和失败时才可以编辑
@@ -80,6 +81,7 @@ export function confirmTransaction(transaction) {
   transaction.status = STATUS.success
   transaction.confirmTime = new Date()
   transaction.exceptionMsg = null
+  broadcast(EVENT_TYPES.txConfirmed, [transaction.txid])
   return transaction.save()
 }
 
@@ -87,7 +89,7 @@ export function errorTransaction(transaction, msg) {
   removeTrackedTransaction(transaction.txid)
   transaction.status = STATUS.error
   transaction.exceptionMsg = msg
-  console.log(`${transaction.from} to ${transaction.to} tx error: ${msg}`)
+  broadcast(EVENT_TYPES.txError, [transaction.txid, msg])
   return transaction.save()
 }
 
@@ -95,7 +97,7 @@ export function failTransaction(transaction, msg) {
   removeTrackedTransaction(transaction.txid)
   transaction.status = STATUS.failure
   transaction.exceptionMsg = msg
-  console.log(`${transaction.from} to ${transaction.to} tx failed: ${msg}`)
+  broadcast(EVENT_TYPES.txError, [transaction.txid, msg])
   return transaction.save()
 }
 

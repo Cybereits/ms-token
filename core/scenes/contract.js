@@ -1,4 +1,4 @@
-import getConnection from '../../framework/web3'
+import getConnection from '../web3'
 import { getConnByAddressThenUnlock } from './account'
 import { ContractMetaModel } from '../schemas'
 import { CONTRACT_NAMES } from '../enums'

@@ -1,10 +1,9 @@
 import { createEthEventListener } from '../scenes/listener'
 import { checkIsSysThenUpdate } from '../scenes/account'
 
-export default function establishEthListener() {
+export default function establishEthListener(connection) {
   console.info('启动 eth 转账监听')
-  // eth 转账事件监听
-  createEthEventListener()
+  createEthEventListener(connection)
     .on('Transaction', ({ from, to }) => {
       checkIsSysThenUpdate(from)
       checkIsSysThenUpdate(to)

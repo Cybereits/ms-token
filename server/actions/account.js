@@ -6,7 +6,7 @@ import {
   GraphQLNonNull as NotNull,
 } from 'graphql'
 
-import getConnection from '../../framework/web3'
+import getConnection from '../../core/web3'
 import { EthAccountModel } from '../../core/schemas'
 import { isSysAccount, getAllAccounts } from '../../core/scenes/account'
 import { saveEternalStringCache } from '../../core/redis/cache'

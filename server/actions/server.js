@@ -1,7 +1,7 @@
 import { BigNumber } from 'bignumber.js'
 import { GraphQLList as List } from 'graphql'
 import { serverStatesResult } from '../types/plainTypes'
-import getConnection from '../../framework/web3'
+import getConnection from '../../core/web3'
 import env from '../../config/env.json'
 
 async function getGethClientState(uri) {

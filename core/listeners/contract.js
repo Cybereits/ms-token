@@ -1,9 +1,9 @@
 import { createContractEventListener } from '../scenes/listener'
 import { checkIsSysThenUpdate } from '../scenes/account'
 
-export default function establishContractListener(contractName) {
+export default function establishContractListener(contractName, connection) {
   console.info(`启动 ${contractName} 合约转账监听`)
-  createContractEventListener(contractName)
+  createContractEventListener(contractName, connection)
     .on('Transfer', async ({ returnValues }) => {
       let { from, to } = returnValues
       console.info(`[Transfer Event] - [${contractName}] from ${from} to ${to}`)

@@ -21,6 +21,7 @@ function deserialize(str) {
  * @param {String} type 代币类型
  */
 export function addAccountSyncInfo(address, type) {
+  console.info(`添加 ${type} 钱包同步任务 ${address}`)
   return tempConnection.sadd(SYNC_QUEUE_SET_NAME, serialize(address, type))
 }
 

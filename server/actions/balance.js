@@ -32,7 +32,7 @@ export const queryAllBalance = {
       },
     },
   },
-  async resolve(root, { pageIndex = 0, pageSize = 10, filter }) {
+  async resolve(_, { pageIndex = 0, pageSize = 10, filter }) {
     let listAccounts
     let { ethAddresses, tokenType, comment } = filter
     let queryCondition = {}
@@ -103,7 +103,7 @@ export const gatherAllTokens = {
       defaultValue: TOKEN_TYPES.eth,
     },
   },
-  async resolve(root, { gatherAddress, fromAddresses, tokenType }, { session }) {
+  async resolve(_, { gatherAddress, fromAddresses, tokenType }, { session }) {
     let queryCondition = {}
 
     if (fromAddresses && fromAddresses.length > 0) {

@@ -6,7 +6,7 @@ import env from '../../config/env.json'
 const { host, port } = env.redis
 
 let client = redis.createClient(port, host, {
-  password: env.redis.pwd,
+  auth_pass: env.redis.pwd,
   db: env.redis.database,
 })
 

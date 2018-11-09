@@ -1,13 +1,17 @@
 import Web3 from 'web3'
 import { clients } from '../../config/env.json'
+import { broadcast, EVENT_TYPES } from '../eventsPublisher'
+import ohDamnItThatIsSoStupid from '../listeners'
 
 const RECONNECT_DELAY = 8
 const STATE_CHECK_INTERVAL = 15
 const BLOCK_SYNC_DELAY_TOLERATION = 2000
 
-let ec_pool = []
-let curr_index = 0
-let curr_block_number = 0
+/**
+ * 因为只需要给一个钱包建立事件监听即可
+ * 所以我们需要一个标识
+ */
+let hasEstablishedEventListener = false
 
 class EstablishedConnection {
 
@@ -21,7 +25,7 @@ class EstablishedConnection {
   buildConn() {
     this.conn = new Web3(new Web3.providers.WebsocketProvider(this.__uri))
     this.conn.__uri = this.__uri
-    this.conn.currentProvider.on('end', this.onClonse.bind(this))
+    this.conn.currentProvider.on('end', this.onClosed.bind(this))
     this.conn.currentProvider.on('connect', this.onConnected.bind(this))
   }
 
@@ -38,16 +42,21 @@ class EstablishedConnection {
   enable() {
     this.isDisabled = false
     this.disable_reason = null
-    console.log(`启用客户端 [${this.__uri}]`)
+    broadcast(EVENT_TYPES.clientEnable, this.conn.__uri)
   }
 
-  onClonse() {
+  onClosed() {
     this.disable(`[${this.__uri}] 钱包客户端连接失败，${RECONNECT_DELAY} 秒后尝试重连...`)
     setTimeout(this.buildConn.bind(this), RECONNECT_DELAY * 1000)
+    hasEstablishedEventListener = false
   }
 
   onConnected() {
     this.enable()
+    if (!hasEstablishedEventListener) {
+      ohDamnItThatIsSoStupid(this.conn)
+      hasEstablishedEventListener = true
+    }
   }
 
   getConn() {
@@ -60,7 +69,9 @@ class EstablishedConnection {
   }
 }
 
-ec_pool = clients.map(clientUri => new EstablishedConnection(clientUri))
+let ec_pool = clients.map(clientUri => new EstablishedConnection(clientUri))
+let curr_index = 0
+let curr_block_number = 0
 
 function clientSyncStateCheck() {
   ec_pool.forEach(async (ec) => {
@@ -71,7 +82,9 @@ function clientSyncStateCheck() {
       return false
     } else if (clientBlockNumber < curr_block_number - BLOCK_SYNC_DELAY_TOLERATION) {
       if (ec.usable()) {
-        ec.disable(`${conn.__uri} 客户端区块同步高度为 ${clientBlockNumber} 落后于当前链上区块高度 ${curr_block_number}`)
+        let reason = `${conn.__uri} 客户端区块同步高度为 ${clientBlockNumber} 落后于当前链上区块高度 ${curr_block_number}`
+        ec.disable(reason)
+        broadcast(EVENT_TYPES.clientError, [conn.__uri, reason])
       }
     } else {
       if (clientBlockNumber > curr_block_number) {
@@ -83,10 +96,6 @@ function clientSyncStateCheck() {
     }
   })
 }
-
-clientSyncStateCheck()
-
-setInterval(clientSyncStateCheck, 1000 * STATE_CHECK_INTERVAL)
 
 /**
  * 获取钱包客户端链接
@@ -125,5 +134,9 @@ function getConnection(uri) {
     }
   }
 }
+
+clientSyncStateCheck()
+
+setInterval(clientSyncStateCheck, 1000 * STATE_CHECK_INTERVAL)
 
 export default getConnection

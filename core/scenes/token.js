@@ -1,6 +1,6 @@
 import BN from 'bignumber.js'
 
-import getConnection from '../../framework/web3'
+import getConnection from '../web3'
 import { addTrackedTransaction } from '../redis/transaction'
 import { getConnByAddressThenUnlock } from './account'
 import { getContractInstance } from './contract'
