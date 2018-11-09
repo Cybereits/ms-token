@@ -214,6 +214,7 @@ export async function handlePendingBalanceUpdateJobs() {
   }
 }
 
+// todo: 代币总额 扔到 redis 里维护
 export async function broadcastBalanceUpdateEvent() {
   const balances = await getTokenBalanceOverview()
   broadcast(EVENT_TYPES.balanceUpdated, balances)
