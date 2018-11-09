@@ -2,6 +2,7 @@ import { TaskCapsule, ParallelQueue } from 'async-task-manager'
 
 import { EthAccountModel } from '../schemas'
 import { addAccountSyncInfo, removeAccountSyncInfo, getAllAccountSyncInfo } from '../redis/queue'
+import { existEternalString } from '../redis/cache'
 import { getEthBalance, getTokenBalance } from './token'
 import { getTokenContractMeta, getAllTokenContracts } from './contract'
 import getConnection from '../../framework/web3'
@@ -67,7 +68,7 @@ export async function getConnByAddressThenUnlock(address) {
  * @returns {Promise<bool>}
  */
 export function isSysAccount(address) {
-  return EthAccountModel.count({ account: address }).then(res => res >= 1)
+  return existEternalString(address)
 }
 
 /**
@@ -86,7 +87,7 @@ export async function sayIWannaUpdateTheBalanceOfSomeAccount(address, contractNa
 }
 
 /**
- * 这才是真正的执行更新账户余额的操作，哈哈哈
+ * 真正执行更新账户余额的操作
  * @param {String} address 钱包地址
  * @param {String} name 合约类型
  */

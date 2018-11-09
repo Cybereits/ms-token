@@ -9,6 +9,7 @@ import {
 import getConnection from '../../framework/web3'
 import { EthAccountModel } from '../../core/schemas'
 import { isSysAccount, getAllAccounts } from '../../core/scenes/account'
+import { saveEternalStringCache } from '../../core/redis/cache'
 
 import { PaginationWrapper, PaginationResult } from '../types/complexTypes'
 
@@ -32,14 +33,17 @@ export const createAccount = {
       .personal
       .newAccount(password)
       // 将生成的钱包信息记录入库再返回
-      .then(
-        account => EthAccountModel.create({
+      .then((account) => {
+        // 保存到 redis 缓存
+        saveEternalStringCache([account])
+        // 创建数据库记录
+        return EthAccountModel.create({
           account,
           secret: password,
           comment,
           group: conn.__uri,
         }).then(() => account)
-      )
+      })
   },
 }
 
@@ -114,6 +118,8 @@ export const queryIsSysAccount = {
     },
   },
   async resolve(root, { address }) {
-    return isSysAccount(address)
+    let conn = getConnection()
+    let checksumAddress = conn.eth.extend.utils.toChecksumAddress(address)
+    return isSysAccount(checksumAddress)
   },
 }
