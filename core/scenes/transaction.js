@@ -1,7 +1,7 @@
 import { TaskCapsule, ParallelQueue } from 'async-task-manager'
 
 import getConnection from '../web3'
-import { TxRecordModel, BatchTransactinTaskModel } from '../schemas'
+import { TxRecordModel, BatchTransactinTaskModel, TxLogModel } from '../schemas'
 import { STATUS } from '../enums'
 import { removeTrackedTransaction } from '../redis/transaction'
 import { confirmBlockLimitation, confirmTimeoutHours } from '../../config/env.json'
@@ -180,4 +180,8 @@ export async function syncTransactionState() {
     console.log('没有需要同步的交易状态')
     return Promise.resolve(true)
   }
+}
+
+export function saveTxLog(from, to, type, amount) {
+  return TxLogModel.create({ from, to, type, amount })
 }

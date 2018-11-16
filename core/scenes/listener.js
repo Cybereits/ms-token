@@ -20,7 +20,7 @@ export function createContractEventListener(contractMetaName, connection) {
           console.log(`contract error : \n${JSON.stringify(error, null, 2)}`)
           throw error
         } else if (result) {
-          eventBus.emit(result.event, result)
+          eventBus.emit(result.event, result, tokenContract.decimal)
         }
       })
     })
@@ -38,21 +38,20 @@ export function createEthEventListener(connection) {
   connection
     .eth
     .subscribe('newBlockHeaders')
-    .on('data', async ({ number, hash: blockHash }) => {
+    .on('data', async ({ hash: blockHash }) => {
       let { transactions } = await connection.eth.getBlock(blockHash)
       if (transactions && transactions.length > 0) {
         // 将异步的任务放在串行队列中处理
         transactions
-          .map(txid => () => connection.eth.getTransactionReceipt(txid)
-            .then((receipt) => {
-              if (receipt) {
-                let { status, contractAddress, from, to } = receipt
-                if (contractAddress === null && status === true) {
-                  eventBus.emit('Transaction', {
-                    from: connection.eth.extend.utils.toChecksumAddress(from),
-                    to: connection.eth.extend.utils.toChecksumAddress(to),
-                  })
-                }
+          .map(txid => () => connection.eth.getTransaction(txid)
+            .then((transaction) => {
+              if (transaction) {
+                let { from, to, value } = transaction
+                eventBus.emit('Transaction', {
+                  from: connection.eth.extend.utils.toChecksumAddress(from),
+                  to: connection.eth.extend.utils.toChecksumAddress(to),
+                  value: value,
+                })
               }
             }))
           .reduce((prev, next) => prev.then(next), Promise.resolve())
