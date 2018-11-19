@@ -9,7 +9,7 @@ import { TaskCapsule, ParallelQueue } from 'async-task-manager'
 import { TOKEN_TYPES } from '../../core/enums'
 import { EthAccountModel, BatchTransactinTaskModel } from '../../core/schemas'
 import { transferAllEth, transferAllTokens } from '../../core/scenes/token'
-import { balanceDetail, balanceFilter, hashResult } from '../types/plainTypes'
+import { balanceDetail, balanceFilter } from '../types/plainTypes'
 import { PaginationWrapper, PaginationResult } from '../types/complexTypes'
 
 export const queryAllBalance = {

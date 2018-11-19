@@ -44,7 +44,7 @@ class EstablishedConnection {
   enable() {
     this.isDisabled = false
     this.disable_reason = null
-    broadcast(EVENT_TYPES.serverState, getGethClientState(this.conn.__uri))
+    getGethClientState(this.__uri).then(data => broadcast(EVENT_TYPES.serverState, data))
   }
 
   onClosed() {
@@ -78,23 +78,25 @@ let curr_block_number = 0
 function clientSyncStateCheck() {
   ec_pool.forEach(async (ec) => {
     let conn = ec.conn
-    let clientBlockNumber = await conn.eth.getBlockNumber().catch(ex => false)
+    let clientBlockNumber = await conn.eth.getBlockNumber().catch(_ => false)
     if (clientBlockNumber === false) {
       // 此时的客户端链接应该是已经断开的状态 所以不需要再做额外的处理
       return false
-    } else if (clientBlockNumber < curr_block_number - BLOCK_SYNC_DELAY_TOLERATION) {
-      if (ec.usable()) {
-        let reason = `${conn.__uri} 客户端区块同步高度为 ${clientBlockNumber} 落后于当前链上区块高度 ${curr_block_number}`
-        ec.disable(reason)
-        broadcast(EVENT_TYPES.serverState, getGethClientState(this.conn.__uri))
-      }
     } else {
-      if (clientBlockNumber > curr_block_number) {
-        curr_block_number = clientBlockNumber
+      if (clientBlockNumber < curr_block_number - BLOCK_SYNC_DELAY_TOLERATION) {
+        if (ec.usable()) {
+          let reason = `${conn.__uri} 客户端区块同步高度为 ${clientBlockNumber} 落后于当前链上区块高度 ${curr_block_number}`
+          ec.disable(reason)
+        }
+      } else {
+        if (clientBlockNumber > curr_block_number) {
+          curr_block_number = clientBlockNumber
+        }
+        if (ec.isDisabled) {
+          ec.enable()
+        }
       }
-      if (ec.isDisabled) {
-        ec.enable()
-      }
+      getGethClientState(conn.__uri).then(data => broadcast(EVENT_TYPES.serverState, data))
     }
   })
 }

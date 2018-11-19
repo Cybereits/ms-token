@@ -125,7 +125,7 @@ export const deployCREContract = {
       description: 'cre 合约初始化参数',
     },
   },
-  async resolve(root, {
+  async resolve(_, {
     deployer,
     contractArgs,
   }) {
@@ -188,7 +188,11 @@ export const deployCREContract = {
         args: JSON.stringify(lockAddresses),
       },
     ])
-      .then(() => '合约部署成功!')
+      .then(() => {
+        establishContractListener(CONTRACT_NAMES.cre)
+        updateAllAccountsForContract([CONTRACT_NAMES.cre])
+        return '合约部署成功!'
+      })
       .catch((err) => {
         throw new Error(`合约保存失败 ${err.message} `)
       })
@@ -347,7 +351,7 @@ export const addERC20ContractMeta = {
       description: '合约部署地址',
     },
   },
-  resolve(root, { name, symbol, decimal, codes, abis, address }) {
+  resolve(_, { name, symbol, decimal, codes, abis, address }) {
     return ContractMetaModel.create({
       name,
       symbol,
