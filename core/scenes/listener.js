@@ -48,6 +48,7 @@ export function createEthEventListener(connection) {
               if (transaction) {
                 let { from, to, value } = transaction
                 eventBus.emit('Transaction', {
+                  txid,
                   from: from ? connection.eth.extend.utils.toChecksumAddress(from) : '',
                   to: to ? connection.eth.extend.utils.toChecksumAddress(to) : '',
                   value: value,

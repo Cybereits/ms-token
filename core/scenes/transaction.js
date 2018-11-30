@@ -182,6 +182,6 @@ export async function syncTransactionState() {
   }
 }
 
-export function saveTxLog(from, to, type, amount) {
-  return TxLogModel.create({ from, to, type, amount })
+export function saveTxLog(txid, from, to, type, amount) {
+  return TxLogModel.update({ txid }, { txid, from, to, type, amount }, { upsert: true }).catch(ex => console.error(ex))
 }

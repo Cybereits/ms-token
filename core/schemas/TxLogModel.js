@@ -4,6 +4,12 @@ import connection from '../../framework/dbProviders/mongo'
 
 // 交易日志
 const txLogs = mongoose.Schema({
+  txid: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true,
+  },
   // 交易发送方
   from: {
     type: String,
