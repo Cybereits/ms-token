@@ -39,7 +39,7 @@ async function deleteUser(username) {
   if (admin && admin.role !== 1) {
     return admin.remove()
   } else {
-    throw new Error('没有找到对应的管理员')
+    return new Error('没有找到对应的管理员')
   }
 }
 
@@ -57,25 +57,29 @@ async function login(username, password, token, ctx) {
   if (!admin) {
     return new Error('用户不存在')
   } else {
-    return admin
-      .comparePassword(password, admin.password)
-      .then((isMath) => {
-        if (!isMath) {
-          throw new Error('密码错误')
-        } else {
-          if (!admin.authSecret || validSecret(admin.authSecret, token)) {
-            ctx.session.admin = {
-              username: admin.username,
-              role: admin.role,
-            }
-            res.username = admin.username
-            res.role = admin.role
-            return res
-          } else {
-            throw new Error('请输入正确的双向验证码')
-          }
+    console.log('find user, compare password')
+
+    let isMatched = await admin.comparePassword(password, admin.password).catch((ex) => {
+      console.error(ex)
+      return false
+    })
+
+    if (!isMatched) {
+      return new Error('密码错误')
+    } else {
+      console.log('password matched, compare token')
+      if (!admin.authSecret || validSecret(admin.authSecret, token)) {
+        ctx.session.admin = {
+          username: admin.username,
+          role: admin.role,
         }
-      })
+        res.username = admin.username
+        res.role = admin.role
+        return res
+      } else {
+        return new Error('请输入正确的双向验证码')
+      }
+    }
   }
 }
 
@@ -183,8 +187,8 @@ export const changePwd = {
       if (!admin) {
         return new Error('无效的身份')
       } else {
-        let isMatch = await admin.comparePassword(originPassword, admin.password)
-        if (!isMatch) {
+        let isMatched = await admin.comparePassword(originPassword, admin.password)
+        if (!isMatched) {
           throw new Error('用户名或者密码不匹配')
         } else {
           admin.password = newPassword

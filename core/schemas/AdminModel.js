@@ -1,7 +1,7 @@
 import mongoose from 'mongoose'
 import bcrypt from 'bcrypt/bcrypt'
 
-import { USER_ROLE_LEVELS} from '../enums'
+import { USER_ROLE_LEVELS } from '../enums'
 
 import connection from '../../framework/dbProviders/mongo'
 
@@ -42,14 +42,7 @@ adminUser.pre('save', function (next) {
 })
 
 adminUser.methods = {
-  comparePassword: function (_password, password) {
-    return new Promise((resolve, reject) => {
-      bcrypt.compare(_password, password, (err, isMath) => {
-        if (err) reject(err)
-        else resolve(isMath)
-      })
-    })
-  },
+  comparePassword: bcrypt.compare,
 }
 
 export default connection.model('adminUser', adminUser)
