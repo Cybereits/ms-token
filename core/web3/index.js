@@ -125,7 +125,7 @@ function getConnection(uri) {
         return ec_pool[curr_index].getConn()
       } else {
         let retryTimes = 1
-        while (retryTimes < len) {
+        while (retryTimes++ < len) {
           curr_index = (curr_index + 1) % len
           if (ec_pool[curr_index].usable()) {
             return ec_pool[curr_index].getConn()
