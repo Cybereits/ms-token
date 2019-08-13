@@ -45,7 +45,7 @@ const ContractMetaModel = connection.model('contractMeta', contractMeta)
 contractMeta.pre('save', async function (next) {
   let meta = this
   if (!meta.isModified('symbol')) return next()
-  if (!meta.symbol) {
+  if (meta.symbol) {
     let exist = await ContractMetaModel.findOne({ symbol: meta.symbol })
     if (!exist || exist.name === meta.name) {
       next()
