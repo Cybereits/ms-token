@@ -4,7 +4,10 @@ import getConnection from '../web3'
 import { addTrackedTransaction } from '../redis/transaction'
 import { getConnByAddressThenUnlock } from './account'
 import { getContractInstance } from './contract'
-import { confirmTransactionByTxid, failedTransactionByTxid } from './transaction'
+import {
+  confirmTransactionByTxid,
+  failedTransactionByTxid,
+} from './transaction'
 import { TOKEN_TYPES, CONTRACT_NAMES, STATUS } from '../enums'
 import { ContractMetaModel, TxRecordModel } from '../schemas'
 import { confirmBlockLimitation } from '../../config/env.json'
@@ -20,7 +23,10 @@ function sendTx(txid) {
 }
 
 function rejectTx(txid, msg) {
-  failedTransactionByTxid(txid, msg || '交易失败，请到 etherscan.io 手动查询出错原因')
+  failedTransactionByTxid(
+    txid,
+    msg || '交易失败，请到 etherscan.io 手动查询出错原因',
+  )
   console.log(`[transaction failed]: ${txid}`)
 }
 
@@ -37,7 +43,11 @@ function onConfirmationWithEvent(promEvent) {
     let { transactionHash, status } = receipt
 
     if (confirmationNumber % 4 === 0) {
-      console.log(`txid ${transactionHash} was confirmed by ${confirmationNumber + 1} blocks, status: ${status}`)
+      console.log(
+        `txid ${transactionHash} was confirmed by ${
+          confirmationNumber + 1
+        } blocks, status: ${status}`,
+      )
     }
 
     if (!status) {
@@ -68,10 +78,13 @@ export async function getEthBalance(address) {
  * @param {*} userAddress 要查询的钱包地址
  * @param {string} contractMetaName 合约名称枚举（默认 cre）
  */
-export async function getTokenBalance(userAddress, contractMetaName = CONTRACT_NAMES.cre) {
+export async function getTokenBalance(
+  userAddress,
+  contractMetaName = CONTRACT_NAMES.cre,
+) {
   let tokenContract = await getContractInstance(contractMetaName)
   let amount = await tokenContract.methods.balanceOf(userAddress).call(null)
-  return amount / (10 ** tokenContract.decimal)
+  return amount / 10 ** tokenContract.decimal
 }
 
 /**
@@ -86,13 +99,12 @@ export async function sendToken(fromAddress, toAddress, amount, options = {}) {
   let _from_addr = fromAddress.trim()
   let _to_addr = toAddress.trim()
   let _amount = new BN(amount.toString(10))
-  let {
-    tokenType = TOKEN_TYPES.cre,
-    gasPrice,
-    gas,
-  } = options
+  let { tokenType = TOKEN_TYPES.cre, gasPrice, gas } = options
 
-  let contractMetaPromise = ContractMetaModel.findOne({ symbol: tokenType }, { name: 1 })
+  let contractMetaPromise = ContractMetaModel.findOne(
+    { symbol: tokenType },
+    { name: 1 },
+  )
   let getConnPromise = getConnByAddressThenUnlock(_from_addr)
 
   let { name } = await contractMetaPromise
@@ -103,8 +115,7 @@ export async function sendToken(fromAddress, toAddress, amount, options = {}) {
     let _multiplier = 10 ** tokenContract.decimal
     let _sendAmount = _amount.mul(_multiplier)
 
-    let promEvent = tokenContract
-      .methods
+    let promEvent = tokenContract.methods
       .transfer(_to_addr, _sendAmount.toString(10))
       .send({ from: _from_addr, gasPrice, gas })
 
@@ -125,13 +136,15 @@ export async function sendToken(fromAddress, toAddress, amount, options = {}) {
  * @param {number} amount 发送数额（个）
  * @param {object} options 其它配置（可选）
  */
-export async function sendETH(fromAddress, toAddress, amount) {
+export async function sendETH(fromAddress, toAddress, amount, options) {
   let _from_addr = fromAddress.trim()
   let _to_addr = toAddress.trim()
-  let { gasPrice, gas } = { gasPrice: '2000000000', gas: '60000'}
+  let { gasPrice, gas } = options
   let _amount = new BN(amount.toString(10))
   let conn = await getConnByAddressThenUnlock(_from_addr)
-  console.log(`send ${amount} eth from ${fromAddress} to ${toAddress}, gasPrice ${gasPrice}, gas ${gas}`)
+  console.log(
+    `send ${amount} eth from ${fromAddress} to ${toAddress}, gasPrice ${gasPrice}, gas ${gas}`,
+  )
 
   return new Promise((resolve, reject) => {
     let promEvent = conn.eth.sendTransaction({
@@ -184,7 +197,9 @@ export async function transferAllEth(fromAddress, toAddress, taskID, username) {
   gasFee = new BN(gasFee)
 
   let txCost = gasPrice.mul(gasFee)
-  let transAmount = connect.eth.extend.utils.fromWei(total.minus(txCost).toString(10))
+  let transAmount = connect.eth.extend.utils.fromWei(
+    total.minus(txCost).toString(10),
+  )
 
   // 创建转账的交易实体
   return TxRecordModel.create({
@@ -200,7 +215,13 @@ export async function transferAllEth(fromAddress, toAddress, taskID, username) {
   })
 }
 
-export async function transferAllTokens(fromAddress, toAddress, taskID, username, tokenType) {
+export async function transferAllTokens(
+  fromAddress,
+  toAddress,
+  taskID,
+  username,
+  tokenType,
+) {
   let _from_addr = fromAddress.trim()
   let _to_addr = toAddress.trim()
 
@@ -210,7 +231,10 @@ export async function transferAllTokens(fromAddress, toAddress, taskID, username
 
   console.assert(_to_addr, '接收地址不能为空!')
 
-  let contractMetaPromise = ContractMetaModel.findOne({ symbol: tokenType }, { name: 1 })
+  let contractMetaPromise = ContractMetaModel.findOne(
+    { symbol: tokenType },
+    { name: 1 },
+  )
   let { name } = await contractMetaPromise
   let amount = await getTokenBalance(fromAddress, name)
 
