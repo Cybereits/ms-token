@@ -5,12 +5,12 @@ import { defaultSchema } from './graphql'
 
 const router = new Router()
 
-router.post('/graphql', async (ctx, next) => {
-  await graphqlKoa({ schema: defaultSchema, context: ctx })(ctx, next)
+router.post('/graphql', (ctx, next) => {
+  graphqlKoa({ schema: defaultSchema, context: ctx })(ctx, next)
 })
 
-router.get('/data', async (ctx, next) => {
-  await graphiqlKoa({ endpointURL: '/graphql', context: ctx })(ctx, next)
+router.get('/data', (ctx, next) => {
+  graphiqlKoa({ endpointURL: '/graphql', context: ctx })(ctx, next)
 })
 
 export default router

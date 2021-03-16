@@ -6,7 +6,7 @@ export const sessionValidWrapper = (graphqlFieldsSchema) => {
     if (session && session.admin) {
       return __originFunc(root, _, ctx)
     } else {
-      return new Error('未授权的访问')
+      return new Error('Unauthorized!')
     }
   }
 

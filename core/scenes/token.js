@@ -125,13 +125,13 @@ export async function sendToken(fromAddress, toAddress, amount, options = {}) {
  * @param {number} amount 发送数额（个）
  * @param {object} options 其它配置（可选）
  */
-export async function sendETH(fromAddress, toAddress, amount, options = {}) {
-  console.log(`send ${amount} eth from ${fromAddress} to ${toAddress}`)
+export async function sendETH(fromAddress, toAddress, amount) {
   let _from_addr = fromAddress.trim()
   let _to_addr = toAddress.trim()
-  let { gasPrice, gas } = options
+  let { gasPrice, gas } = { gasPrice: '2000000000', gas: '60000'}
   let _amount = new BN(amount.toString(10))
   let conn = await getConnByAddressThenUnlock(_from_addr)
+  console.log(`send ${amount} eth from ${fromAddress} to ${toAddress}, gasPrice ${gasPrice}, gas ${gas}`)
 
   return new Promise((resolve, reject) => {
     let promEvent = conn.eth.sendTransaction({
