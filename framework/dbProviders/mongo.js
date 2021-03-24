@@ -9,6 +9,10 @@ const db = mongoose
   .createConnection(ip, name, port, {
     user: username,
     pass: password,
+    server: {
+      auto_reconnect: true,
+      poolSize: 10,
+    },
   })
   // 成功链接数据库
   .once('open', () => console.log('mongodb has open!'))
