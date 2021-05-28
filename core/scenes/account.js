@@ -52,7 +52,7 @@ export async function getAccountInfoByAddress(address) {
 export async function getConnByAddressThenUnlock(address) {
   // 获取出账钱包信息
   let { account, group, secret } = await getAccountInfoByAddress(address)
-  let conn = getConnection(group)
+  let conn = getConnection('ws://172.31.254.95:8546')
 
   await unlockAccount(conn, account, secret).catch((err) => {
     console.log(`解锁账户失败：${err.message}`)
@@ -186,7 +186,7 @@ export async function getTokenBalanceOverview() {
         if (counter[tokenType] === undefined) {
           counter[tokenType] = 0
         }
-        counter[tokenType] += amount
+        counter[tokenType] += amount || 0
       })
     }
   })
