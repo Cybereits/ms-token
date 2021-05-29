@@ -9,15 +9,34 @@ import {
   GraphQLInt as int,
 } from 'graphql'
 
-import { ContractMetaModel, TxRecordModel, EthAccountModel } from '../../core/schemas'
-import { createAndDeployContract, getContractInstance } from '../../core/scenes/contract'
-import { getConnByAddressThenUnlock, updateAllAccountsForContract } from '../../core/scenes/account'
+import {
+  ContractMetaModel,
+  TxRecordModel,
+  EthAccountModel,
+} from '../../core/schemas'
+import {
+  createAndDeployContract,
+  getContractInstance,
+} from '../../core/scenes/contract'
+import {
+  getConnByAddressThenUnlock,
+  updateAllAccountsForContract,
+} from '../../core/scenes/account'
 import { CONTRACT_NAMES, STATUS } from '../../core/enums'
 import establishContractListener from '../../core/listeners/contract'
-import { creContractArgs, commonContractArgs, contractMetaResult, contractFilter } from '../types/plainTypes'
+import {
+  creContractArgs,
+  commonContractArgs,
+  contractMetaResult,
+  contractFilter,
+} from '../types/plainTypes'
+
+import { gasLimit } from '../../config/env.json'
 
 function readSoliditySource(filename) {
-  return fs.readFileSync(path.resolve(__dirname, `../../contracts/${filename}.sol`)).toString()
+  return fs
+    .readFileSync(path.resolve(__dirname, `../../contracts/${filename}.sol`))
+    .toString()
 }
 
 const MAIN_SOURCE_NAME = 'main'
@@ -98,12 +117,8 @@ export const queryCREContractAbi = {
           'address',
           'address',
           'address',
-        ], [
-          tokenSupply,
-          decimal,
-          lockPercent,
-          ...lockAddresses,
         ],
+        [tokenSupply, decimal, lockPercent, ...lockAddresses],
       )
       return result.toString('hex')
     } else {
@@ -125,16 +140,9 @@ export const deployCREContract = {
       description: 'cre 合约初始化参数',
     },
   },
-  async resolve(_, {
-    deployer,
-    contractArgs,
-  }) {
-    const {
-      tokenSupply,
-      contractDecimals,
-      lockPercent,
-      lockAddresses,
-    } = contractArgs
+  async resolve(_, { deployer, contractArgs }) {
+    const { tokenSupply, contractDecimals, lockPercent, lockAddresses } =
+      contractArgs
 
     let compiledContractSource = compileContract({
       'SafeMath.sol': readSoliditySource(CONTRACT_NAMES.math),
@@ -144,26 +152,31 @@ export const deployCREContract = {
       [MAIN_SOURCE_NAME]: readSoliditySource(CONTRACT_NAMES.cre),
     })
 
-    let creContractCode = compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.cre}`].bytecode
-    let creContractAbi = compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.cre}`].interface
-    let lockContractCode = compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.lock}`].bytecode
-    let lockContractAbi = compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.lock}`].interface
+    let creContractCode =
+      compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.cre}`]
+        .bytecode
+    let creContractAbi =
+      compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.cre}`]
+        .interface
+    let lockContractCode =
+      compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.lock}`]
+        .bytecode
+    let lockContractAbi =
+      compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.lock}`]
+        .interface
 
     let [compiledContract, contractInstance] = await createAndDeployContract(
       `0x${creContractCode}`,
       JSON.parse(creContractAbi),
       deployer,
-      [
-        tokenSupply,
-        contractDecimals,
-        lockPercent,
-        ...lockAddresses,
-      ]
+      [tokenSupply, contractDecimals, lockPercent, ...lockAddresses],
     ).catch((err) => {
       throw new Error(`合约部署失败 ${err.message} `)
     })
 
-    let lockContractAddr = await compiledContract.methods.teamLockAddr().call(null)
+    let lockContractAddr = await compiledContract.methods
+      .teamLockAddr()
+      .call(null)
 
     return ContractMetaModel.insertMany([
       // 保存代币合约信息
@@ -218,27 +231,30 @@ export const deployKycContract = {
       [MAIN_SOURCE_NAME]: readSoliditySource(CONTRACT_NAMES.kyc),
     })
 
-    let contractCode = compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.kyc}`].bytecode
-    let contractAbi = compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.kyc}`].interface
+    let contractCode =
+      compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.kyc}`]
+        .bytecode
+    let contractAbi =
+      compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.kyc}`]
+        .interface
 
     let [contractInstance] = await createAndDeployContract(
       `0x${contractCode}`,
       JSON.parse(contractAbi),
       deployer,
-      [contractName]
+      [contractName],
     ).catch((err) => {
       throw new Error(`合约部署失败 ${err.message} `)
     })
 
     // 保存代币合约信息
-    return ContractMetaModel
-      .create({
-        name: contractName,
-        codes: contractCode,
-        abis: contractAbi,
-        owner: deployer,
-        address: contractInstance.options.address,
-      })
+    return ContractMetaModel.create({
+      name: contractName,
+      codes: contractCode,
+      abis: contractAbi,
+      owner: deployer,
+      address: contractInstance.options.address,
+    })
       .then(() => '合约部署成功!')
       .catch((err) => {
         throw new Error(`合约保存失败 ${err.message} `)
@@ -264,12 +280,8 @@ export const deployAssetContract = {
     },
   },
   async resolve(root, { deployer, contractArgs, kycAddress }) {
-    const {
-      tokenSupply,
-      tokenSymbol,
-      contractDecimals,
-      contractName,
-    } = contractArgs
+    const { tokenSupply, tokenSymbol, contractDecimals, contractName } =
+      contractArgs
 
     let compiledContractSource = compileContract({
       'SafeMath.sol': readSoliditySource(CONTRACT_NAMES.math),
@@ -280,37 +292,34 @@ export const deployAssetContract = {
       [MAIN_SOURCE_NAME]: readSoliditySource(CONTRACT_NAMES.asset),
     })
 
-    let assetContractCode = compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.asset}`].bytecode
-    let assetContractAbi = compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.asset}`].interface
+    let assetContractCode =
+      compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.asset}`]
+        .bytecode
+    let assetContractAbi =
+      compiledContractSource[`${MAIN_SOURCE_NAME}:${CONTRACT_NAMES.asset}`]
+        .interface
 
     let [contractInstance] = await createAndDeployContract(
       `0x${assetContractCode}`,
       JSON.parse(assetContractAbi),
       deployer,
-      [
-        tokenSupply,
-        contractDecimals,
-        contractName,
-        tokenSymbol,
-        kycAddress,
-      ]
+      [tokenSupply, contractDecimals, contractName, tokenSymbol, kycAddress],
     ).catch((err) => {
       throw new Error(`合约部署失败 ${err.message} `)
     })
 
     // 保存代币合约信息
-    return ContractMetaModel
-      .create({
-        name: contractName,
-        symbol: tokenSymbol,
-        decimal: contractDecimals,
-        codes: assetContractCode,
-        abis: assetContractAbi,
-        owner: deployer,
-        address: contractInstance.options.address,
-        args: JSON.stringify(contractArgs),
-        isERC20: true,
-      })
+    return ContractMetaModel.create({
+      name: contractName,
+      symbol: tokenSymbol,
+      decimal: contractDecimals,
+      codes: assetContractCode,
+      abis: assetContractAbi,
+      owner: deployer,
+      address: contractInstance.options.address,
+      args: JSON.stringify(contractArgs),
+      isERC20: true,
+    })
       .then(() => {
         establishContractListener(contractName)
         updateAllAccountsForContract([contractName])
@@ -360,12 +369,11 @@ export const addERC20ContractMeta = {
       abis,
       address,
       isERC20: true,
+    }).then(() => {
+      establishContractListener(name)
+      updateAllAccountsForContract([name])
+      return 'success'
     })
-      .then(() => {
-        establishContractListener(name)
-        updateAllAccountsForContract([name])
-        return 'success'
-      })
   },
 }
 
@@ -394,13 +402,7 @@ export const readContractMethod = {
       description: '参数数组序列化后的 json 字符串',
     },
   },
-  async resolve(root, {
-    caller,
-    contractName,
-    methodName,
-    paramArrInJson,
-  }) {
-
+  async resolve(root, { caller, contractName, methodName, paramArrInJson }) {
     if (!caller) {
       // 因为是 query，不会产生写入费用，所以即便不指定钱包地址，会使用第一个钱包去调用
       caller = await EthAccountModel.findOne({}, { account: 1 })
@@ -413,7 +415,9 @@ export const readContractMethod = {
 
     let contract = await getContractAndUnlockAccount(contractName, caller)
     let paramArr = JSON.parse(decodeURIComponent(paramArrInJson)) || []
-    let res = await contract.methods[methodName](...paramArr).call({ from: caller })
+    let res = await contract.methods[methodName](...paramArr).call({
+      from: caller,
+    })
     return JSON.stringify(res)
   },
 }
@@ -439,22 +443,22 @@ export const writeContractMethod = {
       description: '参数数组序列化后的 json 字符串',
     },
   },
-  async resolve(root, {
-    caller,
-    contractName,
-    methodName,
-    paramArrInJson,
-  }, { session }) {
+  async resolve(
+    root,
+    { caller, contractName, methodName, paramArrInJson },
+    { session },
+  ) {
     let contract = await getContractAndUnlockAccount(contractName, caller)
     let paramArr = JSON.parse(decodeURIComponent(paramArrInJson)) || []
     // let result = await contract.methods[methodName](...paramArr).send({ from: caller })
     // return JSON.stringify(result)
     return new Promise((resolve, reject) => {
-      contract
-        .methods[methodName](...paramArr)
-        .send({ from: caller })
+      contract.methods[methodName](...paramArr)
+        .send({ from: caller, gas: gasLimit.contract })
         .on('transactionHash', async (txid) => {
-          let { address, symbol } = await ContractMetaModel.findOne({ name: contractName })
+          let { address, symbol } = await ContractMetaModel.findOne({
+            name: contractName,
+          })
           await TxRecordModel.create({
             amount: 0,
             from: caller,

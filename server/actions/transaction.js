@@ -9,10 +9,22 @@ import { TaskCapsule, ParallelQueue } from 'async-task-manager'
 
 import { STATUS, TOKEN_TYPES } from '../../core/enums'
 import { BatchTransactinTaskModel, TxRecordModel } from '../../core/schemas'
-import { batchTransactionTask, txRecord, txFilter, transactionArgs } from '../types/plainTypes'
+import {
+  batchTransactionTask,
+  txRecord,
+  txFilter,
+  transactionArgs,
+} from '../types/plainTypes'
 import { PaginationResult, PaginationWrapper } from '../types/complexTypes'
 import { sendETH, sendToken } from '../../core/scenes/token'
-import { sendingTransaction, failTransaction, editTransaction as editTx, deleteTransaction, deleteBatchTransactions } from '../../core/scenes/transaction'
+import {
+  sendingTransaction,
+  failTransaction,
+  editTransaction as editTx,
+  deleteTransaction,
+  deleteBatchTransactions,
+} from '../../core/scenes/transaction'
+import { gasLimit } from '../../config/env.json'
 
 /**
  * 批量发送交易
@@ -31,36 +43,40 @@ async function sendBatchTxs(recordIds, username) {
     let transactions = await TxRecordModel.find({ _id: { $in: recordIds } })
 
     transactions.forEach((transaction) => {
-      let {
-        amount,
-        from,
-        to,
-        status,
-        tokenType,
-        gasPrice,
-        gasFee,
-      } = transaction
+      let { amount, from, to, status, tokenType, gasPrice, gasFee } =
+        transaction
 
       // 忽略发送中或者已经发送成功的交易
       if (status !== STATUS.success && status !== STATUS.sending) {
         if (tokenType === TOKEN_TYPES.eth) {
           // 发送 eth
-          queue.add(new TaskCapsule(
-            () => sendETH(from, to, amount, { gasPrice, gas: gasFee })
-              // 交易产生后将这条记录的状态设置为 “发送中” 并且记录 txID
-              .then(txid => sendingTransaction(transaction, txid, username))
-              // 交易过程中出现问题 则将该条记录的状态置为 ”失败“
-              .catch(ex => failTransaction(transaction, ex.message))
-          ))
+          queue.add(
+            new TaskCapsule(() =>
+              sendETH(from, to, amount, {
+                gasPrice,
+                gas: gasFee || gasLimit.ethTransfer,
+              })
+                // 交易产生后将这条记录的状态设置为 “发送中” 并且记录 txID
+                .then((txid) => sendingTransaction(transaction, txid, username))
+                // 交易过程中出现问题 则将该条记录的状态置为 ”失败“
+                .catch((ex) => failTransaction(transaction, ex.message)),
+            ),
+          )
         } else {
           // 添加发送代币的胶囊任务
-          queue.add(new TaskCapsule(
-            () => sendToken(from, to, amount, { tokenType, gasPrice, gas: gasFee })
-              // 交易产生后将这条记录的状态设置为 “发送中” 并且记录 txID
-              .then(txid => sendingTransaction(transaction, txid, username))
-              // 交易过程中出现问题 则将该条记录的状态置为 ”失败“
-              .catch(ex => failTransaction(transaction, ex.message))
-          ))
+          queue.add(
+            new TaskCapsule(() =>
+              sendToken(from, to, amount, {
+                tokenType,
+                gasPrice,
+                gas: gasFee || gasLimit.tokenTransfer,
+              })
+                // 交易产生后将这条记录的状态设置为 “发送中” 并且记录 txID
+                .then((txid) => sendingTransaction(transaction, txid, username))
+                // 交易过程中出现问题 则将该条记录的状态置为 ”失败“
+                .catch((ex) => failTransaction(transaction, ex.message)),
+            ),
+          )
         }
       }
     })
@@ -94,8 +110,7 @@ export const queryBatchTransactionTasks = {
     }
 
     total = await BatchTransactinTaskModel.find().count()
-    result = await BatchTransactinTaskModel
-      .find()
+    result = await BatchTransactinTaskModel.find()
       .sort({ createAt: -1 })
       .skip(pageIndex * pageSize)
       .limit(pageSize)
@@ -127,7 +142,9 @@ export const queryTxRecordsViaTaskId = {
     }
 
     let total = await TxRecordModel.find({ taskid: taskID }).count()
-    let result = await TxRecordModel.find({ taskid: taskID }).skip(pageIndex * pageSize).limit(pageSize)
+    let result = await TxRecordModel.find({ taskid: taskID })
+      .skip(pageIndex * pageSize)
+      .limit(pageSize)
 
     if (result) {
       return PaginationResult(result, pageIndex, pageSize, total)
@@ -146,7 +163,11 @@ export const createTransaction = {
       description: '转账交易参数',
     },
   },
-  async resolve(root, { transaction: { outAccount, to, amount, tokenType, comment } }, { session }) {
+  async resolve(
+    root,
+    { transaction: { outAccount, to, amount, tokenType, comment } },
+    { session },
+  ) {
     return TxRecordModel.create({
       amount,
       from: outAccount,
@@ -173,16 +194,15 @@ export const createBatchTransactions = {
     },
   },
   async resolve(root, { transactions, comment }, { session }) {
-
     if (transactions.length === 0) {
       return new Error('批量转账任务的转账笔数必须大于 1')
     }
 
-    if (transactions.findIndex(t => isNaN(t.amount)) > -1) {
+    if (transactions.findIndex((t) => isNaN(t.amount)) > -1) {
       return new Error('批量转账任务金额无效，必须是大于 0 的数值')
     }
 
-    if (transactions.findIndex(t => t.amount <= 0) > -1) {
+    if (transactions.findIndex((t) => t.amount <= 0) > -1) {
       return new Error('批量转账任务的所有转账金额必须大于 0')
     }
 
@@ -195,16 +215,18 @@ export const createBatchTransactions = {
     let taskID = task._id
 
     // 创建转账的交易实体
-    await TxRecordModel.insertMany(transactions.map(({ outAccount, amount, tokenType, to, comment }) => ({
-      amount,
-      from: outAccount.trim(),
-      to: to.trim(),
-      tokenType,
-      taskid: taskID,
-      status: STATUS.pending,
-      creator: session.admin.username,
-      comment,
-    })))
+    await TxRecordModel.insertMany(
+      transactions.map(({ outAccount, amount, tokenType, to, comment }) => ({
+        amount,
+        from: outAccount.trim(),
+        to: to.trim(),
+        tokenType,
+        taskid: taskID,
+        status: STATUS.pending,
+        creator: session.admin.username,
+        comment,
+      })),
+    )
 
     return task
   },
@@ -265,7 +287,10 @@ export const queryTx = {
     }
 
     total = await TxRecordModel.find(filter).count()
-    result = await TxRecordModel.find(filter).sort({ createAt: -1 }).skip(pageIndex * pageSize).limit(pageSize)
+    result = await TxRecordModel.find(filter)
+      .sort({ createAt: -1 })
+      .skip(pageIndex * pageSize)
+      .limit(pageSize)
 
     return PaginationResult(result, pageIndex, pageSize, total)
   },
@@ -290,9 +315,10 @@ export const sendTransaction = {
       sendBatchTxs(ids, admin.username)
       return 'success'
     } else if (taskid) {
-      let recordIds = await TxRecordModel
-        .find({ taskid }, '_id') // 只获取 id
-        .catch((ex) => { throw ex })
+      let recordIds = await TxRecordModel.find({ taskid }, '_id') // 只获取 id
+        .catch((ex) => {
+          throw ex
+        })
       if (recordIds && recordIds.length > 0) {
         sendBatchTxs(recordIds, admin.username)
         return 'success'

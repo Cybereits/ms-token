@@ -109,7 +109,7 @@ export async function createAndDeployContract(contractCode, contractAbi, deployA
   // 合约部署后的实例对象
   let newContractInstance = await result.send({
     from: deployAccount,
-    gas: 1500000,
+    gas: gasLimit.deploy,
   })
 
   // 锁定部署合约的钱包地址
