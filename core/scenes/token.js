@@ -11,6 +11,7 @@ import {
 import { TOKEN_TYPES, CONTRACT_NAMES, STATUS } from '../enums'
 import { ContractMetaModel, TxRecordModel } from '../schemas'
 import { confirmBlockLimitation } from '../../config/env.json'
+import { getGasPriceFromEtherscan } from '../etherscan'
 
 function confirmTx(txid) {
   confirmTransactionByTxid(txid)
@@ -107,6 +108,9 @@ export async function sendToken(fromAddress, toAddress, amount, options = {}) {
   )
   let getConnPromise = getConnByAddressThenUnlock(_from_addr)
 
+  // 本地获取的 gasPrice 不准确，用 etherscan 的最优 gasPrice
+  gasPrice = await getGasPriceFromEtherscan()
+
   let { name } = await contractMetaPromise
   let conn = await getConnPromise
 
@@ -142,6 +146,10 @@ export async function sendETH(fromAddress, toAddress, amount, options) {
   let { gasPrice, gas } = options
   let _amount = new BN(amount.toString(10))
   let conn = await getConnByAddressThenUnlock(_from_addr)
+
+  // 本地获取的 gasPrice 不准确，用 etherscan 的最优 gasPrice
+  gasPrice = await getGasPriceFromEtherscan()
+
   console.log(
     `send ${amount} eth from ${fromAddress} to ${toAddress}, gasPrice ${gasPrice}, gas ${gas}`,
   )
@@ -185,7 +193,7 @@ export async function transferAllEth(fromAddress, toAddress, taskID, username) {
   let connect = getConnection()
 
   let balancePromise = connect.eth.getBalance(_from_addr)
-  let gasPricePromise = connect.eth.getGasPrice()
+  let gasPricePromise = getGasPriceFromEtherscan()
   let gasFeePromise = connect.eth.estimateGas({ from: _from_addr })
 
   let total = await balancePromise

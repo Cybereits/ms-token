@@ -4,6 +4,7 @@ import { BigNumber } from 'bignumber.js'
 import { clients } from '../../config/env.json'
 import { broadcast, EVENT_TYPES } from '../eventsPublisher'
 import ohDamnItThatIsSoStupid from '../listeners'
+import { getGasPriceFromEtherscan } from '../etherscan'
 
 const RECONNECT_DELAY = 8
 const STATE_CHECK_INTERVAL = 15
@@ -149,7 +150,7 @@ export async function getGethClientState(uri) {
     return { uri, enable: false }
   }
   let currentBlockHeightPromise = conn.eth.getBlockNumber()
-  let gasPricePromise = conn.eth.getGasPrice().then(p => new BigNumber(conn.eth.extend.utils.fromWei(p)))
+  let gasPricePromise = getGasPriceFromEtherscan().then(p => new BigNumber(conn.eth.extend.utils.fromWei(p)))
   // 当前区块高度
   let currentBlockHeight = await currentBlockHeightPromise
   // 当前油价

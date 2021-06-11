@@ -28,6 +28,7 @@
     "bignumber.js": "^5.0.0",
     "ethereumjs-abi": "^0.6.5",
     "graphql": "^0.13.2",
+    "isomorphic-fetch": "^3.0.0",
     "koa": "^2.5.2",
     "koa-bodyparser": "^3.2.0",
     "koa-router": "^7.1.1",
